@@ -18,14 +18,14 @@
 #include "wx/print.h"
 #include "wx/plotctrl/plotdefs.h"
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrl;
+class wxPlotCtrl;
 
 //-----------------------------------------------------------------------------
 // wxPlotPrintout - simple mechanism to print the contents of the wxPlotCtrl
 //                  on a single page
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotPrintout : public wxPrintout
+class wxPlotPrintout : public wxPrintout
 {
 public:
     wxPlotPrintout(wxPlotCtrl* plotWin, const wxString &title = wxEmptyString);
@@ -75,4 +75,4 @@ private:
     DECLARE_ABSTRACT_CLASS(wxPlotPrintout)
 };
 
-#endif // _WX_PLOTPRINT_H_
+#endif

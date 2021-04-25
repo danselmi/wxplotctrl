@@ -145,7 +145,6 @@ bool wxPlotPrintout::OnPrintPage(int page_n)
     wxSize page = pageMMSize;
     page.x      = int(page.x * ppmm_x);
     page.y      = int(page.y * ppmm_y);
-    wxRect pageRect  = wxRect(0, 0, page.x, page.y);
 
     // get margins informations and convert to printer pixels
     wxPoint topLeft     = GetPageSetupData(true)->GetMarginTopLeft();

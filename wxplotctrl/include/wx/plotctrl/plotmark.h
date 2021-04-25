@@ -18,12 +18,11 @@
 #include "wx/bitmap.h"
 #include "wx/geometry.h"
 #include "wx/plotctrl/plotdefs.h"
-#include "wx/things/genergdi.h"
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrl;
-class WXDLLIMPEXP_PLOTCTRL wxPlotMarker;
+class wxPlotCtrl;
+class wxPlotMarker;
 
-WX_DECLARE_OBJARRAY_WITH_DECL(wxPlotMarker, wxArrayPlotMarker, class WXDLLIMPEXP_PLOTCTRL);
+WX_DECLARE_OBJARRAY_WITH_DECL(wxPlotMarker, wxArrayPlotMarker, class);
 
 //-----------------------------------------------------------------------------
 // wxPlotMarker - a marker to draw in the plot window
@@ -59,7 +58,7 @@ enum wxPlotMarkerType
     wxPLOTMARKER_BITMAP     // the bitmap is drawn at the position
 };
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotMarker : public wxObject
+class wxPlotMarker : public wxObject
 {
 public:
     wxPlotMarker() : wxObject() {}
@@ -67,8 +66,8 @@ public:
     wxPlotMarker(int marker_type,
                  const wxRect2DDouble& rect,
                  const wxSize& size,
-                 const wxGenericPen& pen,
-                 const wxGenericBrush& brush = wxNullGenericBrush,
+                 const wxPen& pen,
+                 const wxBrush& brush = wxNullBrush,
                  const wxBitmap& bitmap = wxNullBitmap) : wxObject()
         { Create(marker_type, rect, size, pen, brush, bitmap); }
     // Create a shape marker to be drawn at the point with the given size
@@ -76,8 +75,8 @@ public:
     wxPlotMarker(int marker_type,
                  const wxPoint2DDouble& pt,
                  const wxSize& size,
-                 const wxGenericPen& pen,
-                 const wxGenericBrush& brush = wxNullGenericBrush) : wxObject()
+                 const wxPen& pen,
+                 const wxBrush& brush = wxNullBrush) : wxObject()
         { Create(marker_type, wxRect2DDouble(pt.m_x, pt.m_y, 0, 0), size, pen, brush); }
     // Create a bitmap marker
     wxPlotMarker(const wxPoint2DDouble& pt,
@@ -91,41 +90,41 @@ public:
 
     // Generic create function
     void Create(int marker_type, const wxRect2DDouble& rect,
-                const wxSize& size, const wxGenericPen& pen,
-                const wxGenericBrush& brush = wxNullGenericBrush,
+                const wxSize& size, const wxPen& pen,
+                const wxBrush& brush = wxNullBrush,
                 const wxBitmap& bitmap = wxNullBitmap);
 
     // Simplified methods (use these)
     void CreatePointMarker(const wxPoint2DDouble& pt,
-                           const wxGenericPen& pen)
+                           const wxPen& pen)
         { Create(wxPLOTMARKER_POINT, wxRect2DDouble(pt.m_x, pt.m_y, 0, 0), wxSize(-1, -1), pen); }
-    void CreateLineMarker(const wxRect2DDouble& rect, const wxGenericPen& pen)
+    void CreateLineMarker(const wxRect2DDouble& rect, const wxPen& pen)
         { Create(wxPLOTMARKER_LINE, rect, wxSize(-1, -1), pen); }
-    void CreateHorizLineMarker(double y, const wxGenericPen& pen)
+    void CreateHorizLineMarker(double y, const wxPen& pen)
         { Create(wxPLOTMARKER_HORIZ_LINE, wxRect2DDouble(0, y, -1, 0), wxSize(-1, -1), pen); }
-    void CreateVertLineMarker(double x, const wxGenericPen& pen)
+    void CreateVertLineMarker(double x, const wxPen& pen)
         { Create(wxPLOTMARKER_VERT_LINE, wxRect2DDouble(x, 0, 0, -1), wxSize(-1, -1), pen); }
     void CreateRectMarker(const wxRect2DDouble& rect,
-                          const wxGenericPen& pen,
-                          const wxGenericBrush& brush = wxNullGenericBrush)
+                          const wxPen& pen,
+                          const wxBrush& brush = wxNullBrush)
         { Create(wxPLOTMARKER_RECT, rect, wxSize(-1, -1), pen, brush); }
     void CreateRectMarker(const wxPoint2DDouble& pt,
                           const wxSize& size,
-                          const wxGenericPen& pen,
-                          const wxGenericBrush& brush = wxNullGenericBrush)
+                          const wxPen& pen,
+                          const wxBrush& brush = wxNullBrush)
         { Create(wxPLOTMARKER_RECT, wxRect2DDouble(pt.m_x, pt.m_y, 0, 0), size, pen, brush); }
 //    void CreateEllipseMarker(const wxRect2DDouble& rect,
-//                             const wxGenericPen& pen,
-//                             const wxGenericBrush& brush = wxNullGenericBrush)
+//                             const wxPen& pen,
+//                             const wxBrush& brush = wxNullBrush)
 //        { Create(wxPLOTMARKER_ELLIPSE, rect, wxSize(-1, -1), pen, brush); }
     void CreateEllipseMarker(const wxPoint2DDouble& pt,
                              const wxSize& size,
-                             const wxGenericPen& pen,
-                             const wxGenericBrush& brush = wxNullGenericBrush)
+                             const wxPen& pen,
+                             const wxBrush& brush = wxNullBrush)
         { Create(wxPLOTMARKER_ELLIPSE, wxRect2DDouble(pt.m_x, pt.m_y, 0, 0), size, pen, brush); }
     void CreateBitmapMarker(const wxPoint2DDouble& pt,
                             const wxBitmap& bitmap)
-        { Create(wxPLOTMARKER_BITMAP, wxRect2DDouble(pt.m_x, pt.m_y, 0, 0), wxSize(-1, -1), wxNullGenericPen, wxNullGenericBrush, bitmap); }
+        { Create(wxPLOTMARKER_BITMAP, wxRect2DDouble(pt.m_x, pt.m_y, 0, 0), wxSize(-1, -1), wxNullPen, wxNullBrush, bitmap); }
 
     // Get/Set the marker type
     int  GetMarkerType() const;
@@ -157,11 +156,11 @@ public:
     void SetSize(const wxSize& size);
 
     // Get/Set the pen to draw the lines with
-    wxGenericPen GetPen() const;
-    void SetPen(const wxGenericPen& pen);
+    wxPen GetPen() const;
+    void SetPen(const wxPen& pen);
     // Get/Set the brush to fill the area with (null for none)
-    wxGenericBrush GetBrush() const;
-    void SetBrush(const wxGenericBrush& brush);
+    wxBrush GetBrush() const;
+    void SetBrush(const wxBrush& brush);
     // Get/Set the bitmap to draw (null for none, ignored if not wxPLOTMARKER_BITMAP)
     wxBitmap GetBitmap() const;
     void SetBitmap(const wxBitmap& bitmap);
@@ -187,4 +186,4 @@ private:
     DECLARE_DYNAMIC_CLASS(wxPlotMarker);
 };
 
-#endif // _WX_PLOTMARK_H_
+#endif

@@ -23,53 +23,44 @@
 #include "wx/plotctrl/plotcurv.h"
 #include "wx/plotctrl/plotdata.h"
 #include "wx/plotctrl/plotmark.h"
-#include "wx/plotctrl/plotfunc.h"
-#include "wx/things/range.h"
+#include "wx/plotctrl/range.h"
 
-class WXDLLEXPORT wxDC;
-class WXDLLEXPORT wxNotifyEvent;
-class WXDLLEXPORT wxPaintEvent;
-class WXDLLEXPORT wxMouseEvent;
-class WXDLLEXPORT wxKeyEvent;
-class WXDLLEXPORT wxTimer;
-class WXDLLEXPORT wxTimerEvent;
-class WXDLLEXPORT wxEraseEvent;
-class WXDLLEXPORT wxScrollBar;
-class WXDLLEXPORT wxBitmap;
-class WXDLLEXPORT wxTextCtrl;
+class wxDC;
+class wxNotifyEvent;
+class wxPaintEvent;
+class wxMouseEvent;
+class wxKeyEvent;
+class wxTimer;
+class wxTimerEvent;
+class wxEraseEvent;
+class wxScrollBar;
+class wxBitmap;
+class wxTextCtrl;
 
-class WXDLLIMPEXP_THINGS wxRangeIntSelection;
-class WXDLLIMPEXP_THINGS wxRangeDoubleSelection;
-class WXDLLIMPEXP_THINGS wxArrayRangeIntSelection;
-class WXDLLIMPEXP_THINGS wxArrayRangeDoubleSelection;
+class wxRangeIntSelection;
+class wxRangeDoubleSelection;
+class wxArrayRangeIntSelection;
+class wxArrayRangeDoubleSelection;
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrlArea;
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrlAxis;
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrl;
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrlEvent;
+class wxPlotCtrlArea;
+class wxPlotCtrlAxis;
+class wxPlotCtrl;
+class wxPlotCtrlEvent;
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotCurve;
-class WXDLLIMPEXP_PLOTCTRL wxPlotData;
-class WXDLLIMPEXP_PLOTCTRL wxPlotFunction;
+class wxPlotCurve;
+class wxPlotData;
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerArea;
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerXAxis;
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerYAxis;
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerKey;
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerCurve;
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerDataCurve;
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerMarker;
+class wxPlotDrawerArea;
+class wxPlotDrawerXAxis;
+class wxPlotDrawerYAxis;
+class wxPlotDrawerKey;
+class wxPlotDrawerCurve;
+class wxPlotDrawerDataCurve;
+class wxPlotDrawerMarker;
 
 //-----------------------------------------------------------------------------
 // wxPlot Constants
 //-----------------------------------------------------------------------------
-#ifdef __VISUALC__
-    #include <yvals.h>
-    // disable warning for stl::numeric_limits,
-    // C++ language change: to explicitly specialize
-    #pragma warning(disable:4663)
-#endif // __VISUALC__
-
 #include <limits>
 extern std::numeric_limits<wxDouble> wxDouble_limits;
 
@@ -79,9 +70,9 @@ extern const wxDouble wxPlot_MAX_RANGE; // = wxPlot_MAX_DBL*2
 
 #define CURSOR_GRAB (wxCURSOR_MAX+100)  // A hand cursor with fingers closed
 
-WX_DECLARE_OBJARRAY_WITH_DECL(wxPoint2DDouble, wxArrayPoint2DDouble, class WXDLLIMPEXP_PLOTCTRL);
-WX_DECLARE_OBJARRAY_WITH_DECL(wxRect2DDouble,  wxArrayRect2DDouble, class WXDLLIMPEXP_PLOTCTRL);
-WX_DECLARE_OBJARRAY_WITH_DECL(wxPlotCurve,     wxArrayPlotCurve, class WXDLLIMPEXP_PLOTCTRL);
+WX_DECLARE_OBJARRAY_WITH_DECL(wxPoint2DDouble, wxArrayPoint2DDouble, class);
+WX_DECLARE_OBJARRAY_WITH_DECL(wxRect2DDouble,  wxArrayRect2DDouble, class);
+WX_DECLARE_OBJARRAY_WITH_DECL(wxPlotCurve,     wxArrayPlotCurve, class);
 
 // IDs for the wxPlotCtrl children windows
 enum
@@ -178,7 +169,7 @@ enum wxPlotCtrlStyleUse_Type
 // wxPlotCtrlArea - window where the plot is drawn (privately used in wxPlotCtrl)
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrlArea : public wxWindow
+class wxPlotCtrlArea : public wxWindow
 {
 public:
     wxPlotCtrlArea( wxWindow *parent, wxWindowID win_id )
@@ -220,7 +211,7 @@ private:
 // wxPlotCtrlAxis - X or Y axis window (privately used in wxPlotCtrl)
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrlAxis : public wxWindow
+class wxPlotCtrlAxis : public wxWindow
 {
 public:
     wxPlotCtrlAxis( wxWindow *parent, wxWindowID win_id, wxPlotCtrlAxis_Type style )
@@ -265,7 +256,7 @@ private:
 //
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrl : public wxWindow
+class wxPlotCtrl : public wxWindow
 {
 public:
     wxPlotCtrl() : wxWindow() { Init(); }
@@ -316,21 +307,14 @@ public:
     wxPlotCurve *GetCurve( int curve_index ) const;
     // returns NULL if curve_index is not wxPlotData or derived from it
     wxPlotData *GetDataCurve( int curve_index ) const { return wxDynamicCast(GetCurve(curve_index), wxPlotData); }
-    // returns NULL if curve_index is not wxPlotFunction or derived from it
-    wxPlotFunction *GetFunctionCurve( int curve_index ) const { return wxDynamicCast(GetCurve(curve_index), wxPlotFunction); }
     // returns true if the curve is a wxPlotData curve
     bool IsDataCurve( int curve_index ) const { return GetDataCurve(curve_index) != NULL; }
-    // returns true if the curve is a wxPlotFunction curve
-    bool IsFunctionCurve( int curve_index ) const { return GetFunctionCurve(curve_index) != NULL; }
     // Else the function must be some sort of subclassed wxPlotCurve
 
     // Sets the currently active curve, NULL for none active
     void SetActiveCurve( wxPlotCurve* curve, bool send_event=false );
     // Gets the currently active curve, NULL if none
     wxPlotCurve *GetActiveCurve() const { return m_activeCurve; }
-    // Gets the currently active curve as a wxPlotFunction
-    //    returns NULL if its not a wxPlotFunction, even if a curve is active
-    wxPlotFunction *GetActiveFuncCurve() const { return wxDynamicCast(m_activeCurve, wxPlotFunction); }
     // Gets the currently active curve as a wxPlotData
     //    returns NULL if its not a wxPlotData, even if a curve is active
     wxPlotData *GetActiveDataCurve() const { return wxDynamicCast(m_activeCurve, wxPlotData); }
@@ -976,7 +960,7 @@ private:
 // wxPlotCtrlEvent
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrlEvent : public wxNotifyEvent
+class wxPlotCtrlEvent : public wxNotifyEvent
 {
 public:
     wxPlotCtrlEvent(wxEventType commandType = wxEVT_NULL,
@@ -1012,6 +996,8 @@ public:
     int GetMouseFunction() const { return m_mouse_func; }
     void SetMouseFunction(int func) { m_mouse_func = func; }
 
+    static wxString GetEventName(wxEventType eventType);
+
 protected:
     virtual wxEvent *Clone() const { return new wxPlotCtrlEvent(*this); }
 
@@ -1029,7 +1015,7 @@ private:
 // wxPlotCtrlEvent
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrlSelEvent : public wxPlotCtrlEvent
+class wxPlotCtrlSelEvent : public wxPlotCtrlEvent
 {
 public:
     wxPlotCtrlSelEvent(wxEventType commandType = wxEVT_NULL,
@@ -1084,57 +1070,57 @@ private:
 BEGIN_DECLARE_EVENT_TYPES()
 
 // wxPlotCtrlEvent
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_ADD_CURVE,          0) // a curve has been added
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_DELETING_CURVE,     0) // a curve is about to be deleted, event.Skip(false) to prevent
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_DELETED_CURVE,      0) // a curve has been deleted
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_ADD_CURVE,          0) // a curve has been added
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_DELETING_CURVE,     0) // a curve is about to be deleted, event.Skip(false) to prevent
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_DELETED_CURVE,      0) // a curve has been deleted
 
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_CURVE_SEL_CHANGING, 0) // curve selection changing, event.Skip(false) to prevent
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_CURVE_SEL_CHANGED,  0) // curve selection has changed
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_CURVE_SEL_CHANGING, 0) // curve selection changing, event.Skip(false) to prevent
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_CURVE_SEL_CHANGED,  0) // curve selection has changed
 
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_MOUSE_MOTION,       0) // mouse moved
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_CLICKED,            0) // mouse left or right clicked
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_DOUBLECLICKED,      0) // mouse left or right doubleclicked
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_POINT_CLICKED,      0) // clicked on a plot point (+-2pixels)
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_POINT_DOUBLECLICKED,0) // dclicked on a plot point (+-2pixels)
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_MOUSE_MOTION,       0) // mouse moved
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_CLICKED,            0) // mouse left or right clicked
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_DOUBLECLICKED,      0) // mouse left or right doubleclicked
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_POINT_CLICKED,      0) // clicked on a plot point (+-2pixels)
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_POINT_DOUBLECLICKED,0) // dclicked on a plot point (+-2pixels)
 
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_AREA_SEL_CREATING,  0) // mouse left down and drag begin
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_AREA_SEL_CHANGING,  0) // mouse left down and dragging
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_AREA_SEL_CREATED,   0) // mouse left down and drag end
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_AREA_SEL_CREATING,  0) // mouse left down and drag begin
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_AREA_SEL_CHANGING,  0) // mouse left down and dragging
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_AREA_SEL_CREATED,   0) // mouse left down and drag end
 
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_VIEW_CHANGING,      0) // zoom or origin of plotctrl is about to change
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_VIEW_CHANGED,       0) // zoom or origin of plotctrl has changed
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_VIEW_CHANGING,      0) // zoom or origin of plotctrl is about to change
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_VIEW_CHANGED,       0) // zoom or origin of plotctrl has changed
 
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_CURSOR_CHANGING,    0) // cursor point/curve is about to change, event.Skip(false) to prevent
-                                                           // if the cursor is invalidated since
-                                                           // the curve is gone you cannot prevent it
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_CURSOR_CHANGED,     0) // cursor point/curve changed
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_CURSOR_CHANGING,    0) // cursor point/curve is about to change, event.Skip(false) to prevent
+                                     // if the cursor is invalidated since
+                                     // the curve is gone you cannot prevent it
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_CURSOR_CHANGED,     0) // cursor point/curve changed
 
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_ERROR,              0) // an error has occured, see event.GetString()
-                                                           // usually nonfatal NaN overflow errors
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_ERROR,              0) // an error has occured, see event.GetString()
+                                     // usually nonfatal NaN overflow errors
 
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_BEGIN_TITLE_EDIT,   0) // title is about to be edited, event.Skip(false) to prevent
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_END_TITLE_EDIT,     0) // title has been edited and changed, event.Skip(false) to prevent
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_BEGIN_X_LABEL_EDIT, 0) // x label is about to be edited, event.Skip(false) to prevent
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_END_X_LABEL_EDIT,   0) // x label has been edited and changed, event.Skip(false) to prevent
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_BEGIN_Y_LABEL_EDIT, 0) // y label is about to be edited, event.Skip(false) to prevent
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_END_Y_LABEL_EDIT,   0) // y label has been edited and changed, event.Skip(false) to prevent
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_BEGIN_TITLE_EDIT,   0) // title is about to be edited, event.Skip(false) to prevent
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_END_TITLE_EDIT,     0) // title has been edited and changed, event.Skip(false) to prevent
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_BEGIN_X_LABEL_EDIT, 0) // x label is about to be edited, event.Skip(false) to prevent
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_END_X_LABEL_EDIT,   0) // x label has been edited and changed, event.Skip(false) to prevent
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_BEGIN_Y_LABEL_EDIT, 0) // y label is about to be edited, event.Skip(false) to prevent
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_END_Y_LABEL_EDIT,   0) // y label has been edited and changed, event.Skip(false) to prevent
 
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_MOUSE_FUNC_CHANGING,0)
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_MOUSE_FUNC_CHANGED, 0)
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_MOUSE_FUNC_CHANGING,0)
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_MOUSE_FUNC_CHANGED, 0)
 
 // wxPlotCtrlSelEvent
-//DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_RANGE_SEL_CREATING,0)
-//DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_RANGE_SEL_CREATED, 0)
-//DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_RANGE_SEL_CHANGING,0)
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_RANGE_SEL_CHANGED,   0)
+//DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_RANGE_SEL_CREATING,0)
+//DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_RANGE_SEL_CREATED, 0)
+//DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_RANGE_SEL_CHANGING,0)
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_RANGE_SEL_CHANGED,   0)
 
 // unused
 /*
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_VALUE_SEL_CREATING, 0)
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_VALUE_SEL_CREATED,  0)
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_VALUE_SEL_CHANGING, 0)
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_VALUE_SEL_CHANGED,  0)
-DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_PLOTCTRL, wxEVT_PLOTCTRL_AREA_SEL_CHANGED,   0)
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_VALUE_SEL_CREATING, 0)
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_VALUE_SEL_CREATED,  0)
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_VALUE_SEL_CHANGING, 0)
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_VALUE_SEL_CHANGED,  0)
+DECLARE_EVENT_TYPE(wxEVT_PLOTCTRL_AREA_SEL_CHANGED,   0)
 */
 END_DECLARE_EVENT_TYPES()
 // ----------------------------------------------------------------------------

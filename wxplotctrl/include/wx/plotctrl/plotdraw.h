@@ -17,27 +17,26 @@
 
 #include "wx/plotctrl/plotdefs.h"
 #include "wx/plotctrl/plotmark.h"
-#include "wx/things/genergdi.h"
-#include "wx/things/range.h"
+#include "wx/plotctrl/range.h"
 
-class WXDLLEXPORT wxDC;
+class wxDC;
 
-class WXDLLIMPEXP_THINGS wxRangeIntSelection;
-class WXDLLIMPEXP_THINGS wxRangeDoubleSelection;
-class WXDLLIMPEXP_THINGS wxArrayRangeIntSelection;
-class WXDLLIMPEXP_THINGS wxArrayRangeDoubleSelection;
+class wxRangeIntSelection;
+class wxRangeDoubleSelection;
+class wxArrayRangeIntSelection;
+class wxArrayRangeDoubleSelection;
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotCtrl;
-class WXDLLIMPEXP_PLOTCTRL wxPlotCurve;
-class WXDLLIMPEXP_PLOTCTRL wxPlotData;
-class WXDLLIMPEXP_PLOTCTRL wxPlotFunction;
-class WXDLLIMPEXP_PLOTCTRL wxPlotMarker;
+class wxPlotCtrl;
+class wxPlotCurve;
+class wxPlotData;
+class wxPlotFunction;
+class wxPlotMarker;
 
 //-----------------------------------------------------------------------------
 // wxPlotDrawerBase
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerBase : public wxObject
+class wxPlotDrawerBase : public wxObject
 {
 public:
     wxPlotDrawerBase(wxPlotCtrl* owner) : wxObject(),
@@ -78,7 +77,7 @@ private:
 // wxPlotDrawerArea
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerArea : public wxPlotDrawerBase
+class wxPlotDrawerArea : public wxPlotDrawerBase
 {
 public:
     wxPlotDrawerArea(wxPlotCtrl* owner) : wxPlotDrawerBase(owner) {}
@@ -93,7 +92,7 @@ private:
 // wxPlotDrawerAxisBase
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerAxisBase : public wxPlotDrawerBase
+class wxPlotDrawerAxisBase : public wxPlotDrawerBase
 {
 public:
     wxPlotDrawerAxisBase(wxPlotCtrl* owner);
@@ -103,11 +102,11 @@ public:
     void SetTickFont( const wxFont& font ) { m_tickFont = font; }
     void SetLabelFont( const wxFont& font ) { m_labelFont = font; }
 
-    void SetTickColour( const wxGenericColour& colour ) { m_tickColour = colour; }
-    void SetLabelColour( const wxGenericColour& colour ) { m_labelColour = colour; }
+    void SetTickColour( const wxColour& colour ) { m_tickColour = colour; }
+    void SetLabelColour( const wxColour& colour ) { m_labelColour = colour; }
 
-    void SetTickPen( const wxGenericPen& pen ) { m_tickPen = pen; }
-    void SetBackgroundBrush( const wxGenericBrush& brush ) { m_backgroundBrush = brush; }
+    void SetTickPen( const wxPen& pen ) { m_tickPen = pen; }
+    void SetBackgroundBrush( const wxBrush& brush ) { m_backgroundBrush = brush; }
 
     void SetTickPositions( const wxArrayInt& pos ) { m_tickPositions = pos; }
     void SetTickLabels( const wxArrayString& labels ) { m_tickLabels = labels; }
@@ -122,11 +121,11 @@ public:
 
     wxFont          m_tickFont;
     wxFont          m_labelFont;
-    wxGenericColour m_tickColour;
-    wxGenericColour m_labelColour;
+    wxColour m_tickColour;
+    wxColour m_labelColour;
 
-    wxGenericPen    m_tickPen;
-    wxGenericBrush  m_backgroundBrush;
+    wxPen    m_tickPen;
+    wxBrush  m_backgroundBrush;
 
 private:
     DECLARE_ABSTRACT_CLASS(wxPlotDrawerAxisBase);
@@ -136,7 +135,7 @@ private:
 // wxPlotDrawerXAxis
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerXAxis : public wxPlotDrawerAxisBase
+class wxPlotDrawerXAxis : public wxPlotDrawerAxisBase
 {
 public:
     wxPlotDrawerXAxis(wxPlotCtrl* owner) : wxPlotDrawerAxisBase(owner) {}
@@ -151,7 +150,7 @@ private:
 // wxPlotDrawerYAxis
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerYAxis : public wxPlotDrawerAxisBase
+class wxPlotDrawerYAxis : public wxPlotDrawerAxisBase
 {
 public:
     wxPlotDrawerYAxis(wxPlotCtrl* owner) : wxPlotDrawerAxisBase(owner) {}
@@ -166,7 +165,7 @@ private:
 // wxPlotDrawerKey
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerKey : public wxPlotDrawerBase
+class wxPlotDrawerKey : public wxPlotDrawerBase
 {
 public:
     wxPlotDrawerKey(wxPlotCtrl* owner);
@@ -175,13 +174,13 @@ public:
     virtual void Draw(wxDC *dc, const wxString& keyString);
 
     void SetFont(const wxFont& font) { m_font = font; }
-    void SetFontColour(const wxGenericColour& colour) { m_fontColour = colour; }
+    void SetFontColour(const wxColour& colour) { m_fontColour = colour; }
 
     void SetKeyPosition(const wxPoint& pos) { m_keyPosition = pos; }
 
     // implementation
     wxFont          m_font;
-    wxGenericColour m_fontColour;
+    wxColour m_fontColour;
 
     wxPoint m_keyPosition;
     bool    m_key_inside;
@@ -197,7 +196,7 @@ private:
 // wxPlotDrawerCurve
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerCurve : public wxPlotDrawerBase
+class wxPlotDrawerCurve : public wxPlotDrawerBase
 {
 public:
     wxPlotDrawerCurve(wxPlotCtrl* owner) : wxPlotDrawerBase(owner) {}
@@ -213,7 +212,7 @@ private:
 // wxPlotDrawerDataCurve
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerDataCurve : public wxPlotDrawerBase
+class wxPlotDrawerDataCurve : public wxPlotDrawerBase
 {
 public:
     wxPlotDrawerDataCurve(wxPlotCtrl* owner) : wxPlotDrawerBase(owner) {}
@@ -229,7 +228,7 @@ private:
 // wxPlotDrawerMarkers
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotDrawerMarker : public wxPlotDrawerBase
+class wxPlotDrawerMarker : public wxPlotDrawerBase
 {
 public:
     wxPlotDrawerMarker(wxPlotCtrl* owner) : wxPlotDrawerBase(owner) {}
@@ -242,4 +241,4 @@ private:
     DECLARE_ABSTRACT_CLASS(wxPlotDrawerMarker);
 };
 
-#endif // _WX_PLOTDRAW_H_
+#endif

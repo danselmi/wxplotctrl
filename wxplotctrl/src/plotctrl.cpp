@@ -149,7 +149,7 @@ DEFINE_EVENT_TYPE(wxEVT_PLOTCTRL_AREA_CREATE)
 // The code below translates the event.GetEventType to a string name for debugging
 #define aDEFINE_LOCAL_EVENT_TYPE(t) if (eventType == t) return wxString(wxT(#t));
 
-wxString wxPlotCtrl_GetEventName(wxEventType eventType)
+wxString wxPlotCtrlEvent::GetEventName(wxEventType eventType)
 {
     aDEFINE_LOCAL_EVENT_TYPE(wxEVT_PLOTCTRL_ADD_CURVE)
     aDEFINE_LOCAL_EVENT_TYPE(wxEVT_PLOTCTRL_DELETING_CURVE)
@@ -450,7 +450,7 @@ void wxPlotCtrl::Init()
 
     m_cursorMarker.CreateEllipseMarker(wxPoint2DDouble(0,0),
                                        wxSize(2, 2),
-                                       wxGenericPen(wxGenericColour(0, 255, 0)));
+                                       wxPen(wxColour(0, 255, 0)));
     m_cursor_curve  = -1;
     m_cursor_index  = -1;
 
@@ -966,7 +966,7 @@ wxFont wxPlotCtrl::GetAxisFont() const
 }
 wxColour wxPlotCtrl::GetAxisColour() const
 {
-    return m_xAxisDrawer->m_tickColour.GetColour(); // FIXME
+    return m_xAxisDrawer->m_tickColour; // FIXME
 }
 
 void wxPlotCtrl::SetAxisFont( const wxFont &font )
@@ -1023,7 +1023,7 @@ wxFont wxPlotCtrl::GetAxisLabelFont() const
 }
 wxColour wxPlotCtrl::GetAxisLabelColour() const
 {
-    return m_xAxisDrawer->m_labelColour.GetColour(); // FIXME
+    return m_xAxisDrawer->m_labelColour; // FIXME
 }
 void wxPlotCtrl::SetAxisLabelFont( const wxFont &font )
 {
@@ -1060,7 +1060,7 @@ wxFont wxPlotCtrl::GetKeyFont() const
 }
 wxColour wxPlotCtrl::GetKeyColour() const
 {
-    return m_keyDrawer->m_fontColour.GetColour(); // FIXME
+    return m_keyDrawer->m_fontColour; // FIXME
 }
 void wxPlotCtrl::SetKeyFont( const wxFont &font )
 {
@@ -1148,12 +1148,7 @@ void wxPlotCtrl::CreateKeyString()
     for (n = 0; n < count; n++)
     {
         wxString key;
-        if (GetDataCurve(n))
-            key = GetDataCurve(n)->GetFilename();
-        else if (GetFunctionCurve(n))
-            key = GetFunctionCurve(n)->GetFunctionString();
-        else
-            key.Printf(wxT("Curve %d"), n);
+        key.Printf(wxT("Curve %d"), n);
 
         m_keyString += (key + wxT("\n"));
     }
@@ -1203,8 +1198,6 @@ bool wxPlotCtrl::AddCurve( const wxPlotCurve &curve, bool select, bool send_even
 
     if (wxDynamicCast(&curve, wxPlotData))
         return AddCurve(new wxPlotData(*wxDynamicCast(&curve, wxPlotData)), select, send_event);
-    if (wxDynamicCast(&curve, wxPlotFunction))
-        return AddCurve(new wxPlotFunction(*wxDynamicCast(&curve, wxPlotFunction)), select, send_event);
 
     wxFAIL_MSG(wxT("Unable to ref curve type added to plot"));
     return false;
@@ -1339,17 +1332,6 @@ wxArrayInt wxPlotCtrl::GetPlotDataIndexes() const
     for (n=0; n<count; n++)
     {
         if (wxDynamicCast(&m_curves.Item(n), wxPlotData))
-            array.Add(n);
-    }
-    return array;
-}
-wxArrayInt wxPlotCtrl::GetPlotFunctionIndexes() const
-{
-    wxArrayInt array;
-    size_t n, count = m_curves.GetCount();
-    for (n=0; n<count; n++)
-    {
-        if (wxDynamicCast(&m_curves.Item(n), wxPlotFunction))
             array.Add(n);
     }
     return array;
@@ -2149,7 +2131,7 @@ void wxPlotCtrl::AddHistoryView()
 
     if ((m_history_views_index >= 0)
         && (m_history_views_index < int(m_historyViews.GetCount()))
-        && WXRECT2DDOUBLE_EQUAL(m_viewRect, m_historyViews[m_history_views_index]))
+        && (m_viewRect == m_historyViews[m_history_views_index]))
             return;
 
     if (int(m_historyViews.GetCount()) >= MAX_PLOT_ZOOMS)
@@ -2178,7 +2160,7 @@ void wxPlotCtrl::NextHistoryView(bool foward, bool send_event)
     // try to set it to the "current" history view
     if ((m_history_views_index > -1) && (m_history_views_index < count))
     {
-        if (!WXRECT2DDOUBLE_EQUAL(m_viewRect, m_historyViews[m_history_views_index]))
+        if (!(m_viewRect == m_historyViews[m_history_views_index]))
             SetViewRect(m_historyViews[m_history_views_index], send_event);
     }
 
@@ -2878,10 +2860,6 @@ void wxPlotCtrl::DrawWholePlot( wxDC *dc, const wxRect &boundingRect, double dpi
                              old_zoom.m_y * double(m_areaClientRect.height)/old_areaClientRect.height);
 
     wxPrintf(wxT("DPI %g, font %g pen%g\n"), dpi, fontScale, penScale);
-    PRINT_WXRECT(wxT("Whole plot"), boundingRect);
-    PRINT_WXRECT(wxT("Area plot"), m_areaRect);
-    PRINT_WXRECT(wxT("Xaxis plot"), m_xAxisRect);
-    PRINT_WXRECT(wxT("Yaxis plot"), m_yAxisRect);
 
     //draw all components to the provided dc
     dc->SetDeviceOrigin(long(boundingRect.x+m_xAxisRect.GetLeft()),

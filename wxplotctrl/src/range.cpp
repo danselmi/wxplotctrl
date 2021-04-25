@@ -22,7 +22,7 @@
     #include "wx/utils.h"
 #endif // WX_PRECOMP
 
-#include "wx/things/range.h"
+#include "wx/plotctrl/range.h"
 #include <stdio.h>
 
 const wxRangeInt wxEmptyRangeInt(0, -1);

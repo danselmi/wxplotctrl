@@ -17,10 +17,9 @@
 
 #include "wx/txtstrm.h"            // for wxEOL
 #include "wx/plotctrl/plotcurv.h"  // includes plotdefs.h
-#include "wx/plotctrl/plotfunc.h"
 
-class WXDLLIMPEXP_THINGS wxRangeIntSelection;
-class WXDLLIMPEXP_PLOTCTRL wxPlotData;
+class wxRangeIntSelection;
+class wxPlotData;
 
 //-----------------------------------------------------------------------------
 // wxPlotData consts and defines
@@ -51,9 +50,9 @@ enum wxPlotDataLoad_Type
 //-----------------------------------------------------------------------------
 
 // A uncreated wxPlotCurve for reference
-WXDLLIMPEXP_DATA_PLOTCTRL(extern const wxPlotData) wxNullPlotData;
+extern const wxPlotData wxNullPlotData;
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotData : public wxPlotCurve
+class wxPlotData : public wxPlotCurve
 {
 public:
     wxPlotData() : wxPlotCurve() {}
@@ -62,24 +61,13 @@ public:
     wxPlotData( int points, bool zero = true ):wxPlotCurve() { Create(points, zero); }
     wxPlotData( double *x_data, double *y_data, int points, bool static_data = false ):wxPlotCurve()
         { Create( x_data, y_data, points, static_data ); }
-    wxPlotData( const wxString &filename, int x_col, int y_col, int options = wxPLOTDATA_LOAD_DEFAULT ):wxPlotCurve()
-        { LoadFile( filename, x_col, y_col, options ); }
-    wxPlotData( const wxPlotFunction &plotFunc, double x_start, double dx, int points ):wxPlotCurve()
-        { Create( plotFunc, x_start, dx, points ); }
-
     virtual ~wxPlotData() {}
 
     // Ref the source plotdata
     bool Create( const wxPlotData& plotData );
-    // Create from a wxPlotFunction
-    //   starting at x-start, with dx increment, for number of points
-    bool Create( const wxPlotFunction &plotFunc, double x_start, double dx, int points );
     // Allocate memory for given number of points, if zero then init to zeroes
     //   don't use uninitialized data, trying to plot it will cause problems
     bool Create( int points, bool zero = true );
-    // Load plotdata from a file, see Loadfile
-    bool Create( const wxString &filename, int x_col, int y_col, int options = wxPLOTDATA_LOAD_DEFAULT )
-        { return LoadFile( filename, x_col, y_col, options ); }
     // Assign the malloc(ed) data sets to this plotdata,
     //   if !static_data they'll be free(ed) on destruction
     bool Create( double *x_data, double *y_data, int points, bool static_data = false );
@@ -125,34 +113,6 @@ public:
 
     // are consecutive x points always > than the previous ones
     bool GetIsXOrdered() const;
-
-    //-------------------------------------------------------------------------
-    // Load/Save, Filename, file header, saving options
-    //-------------------------------------------------------------------------
-
-    // Load a data file use # for comments and spaces, tabs, commas for column separators
-    //   if x_col or y_col is < 0 then if more than two cols pop-up a dialog to select
-    //                            otherwise use col 1 and 2 or if only 1 col then
-    //                            fill x with 0,1,2,3...
-    //   if x_col == y_col then fill y_col with data and x_col with 0,1,2,3...
-    bool LoadFile( const wxString &filename, int x_col = -1, int y_col = -1,
-                   int options = wxPLOTDATA_LOAD_DEFAULT );
-    // Save a data file
-    bool SaveFile( const wxString &filename, bool save_header = false,
-                   const wxString &format=wxT("%g") );
-
-    // Get/Set the filename was used for LoadFile or a previous SetFilename (if any)
-    wxString GetFilename() const;
-    void SetFilename( const wxString &filename );
-    // Get/Set the Header that from LoadFile or a previous call to SetHeader (if any)
-    wxString GetHeader() const;
-    void SetHeader( const wxString &header );
-    // Get/Set the EOL mode from LoadFile or a previous call to SetEOLMode (if any)
-    wxEOL GetEOLMode() const;
-    void SetEOLMode( wxEOL eol = wxEOL_NATIVE );
-    // Get/Set the column separator to use when loading or saving the data
-    wxString GetDataColumnSeparator() const;
-    void SetDataColumnSeparator(const wxString &separator = wxPLOTCURVE_DATASEPARATOR_SPACE);
 
     //-------------------------------------------------------------------------
     // Get/Set data values
@@ -268,13 +228,6 @@ public:
     //   returns empty plotdata if ranges don't match
     wxPlotData Resample( const wxPlotData &source ) const;
 
-    // Take the y-values of the wxPlotFunction curve at this curve's x-values
-    //    add_x adds function's y-values to this curve's x-values
-    //    add_y adds function's y-values to this curve's y-values
-    //    mult_x multiplies function's y-values to this curve's x-values
-    //    mult_y multiplies function's y-values to this curve's y-values
-    wxPlotData Modify( const wxPlotFunction &func, FuncModify_Type type ) const;
-
     // Add y values of curves 1 (this) and 2, after multiplying each curve by their factors
     //    interpolating between points if necessary, but outlying points are ignored
     //    if factor1,2 are both 1.0 then strictly add them
@@ -310,51 +263,6 @@ public:
     // Tries to line up these two curves by shifting the other along the x-axis
     //   it returns the x shift that gives the minimum deviation
     double MinShiftX( const wxPlotData &other ) const;
-
-    // Fast Fourier Transform the data, forward = true for forward xform
-    // note that the data size will be expanded to the smallest 2^n size that contains the data
-    // the last point is replicated to fill it.
-    // Since there are typically real and imaginary parts GetYiData() is now valid
-    wxPlotData FFT( bool forward );
-    // Return the power spectrum of the FFT of the data
-    wxPlotData PowerSpectrum();
-
-    enum FFTFilter_Type
-    {
-        FilterStep,
-        FilterButterworth,
-        FilterGaussian,
-        FilterFermi
-    };
-
-    // String representation of the equations of the FFT transform filters
-    static wxString FFTHiPassFilterFormat( double fc, wxPlotData::FFTFilter_Type filter, double n = 5 );
-    static wxString FFTLoPassFilterFormat( double fc, wxPlotData::FFTFilter_Type filter, double n = 5 );
-    static wxString FFTNotchFilterFormat( double lo, double hi, wxPlotData::FFTFilter_Type filter, double n = 5 );
-    static wxString FFTBandPassFilterFormat( double lo, double hi, wxPlotData::FFTFilter_Type filter, double n = 5 );
-
-    // Use FFT to make either a high or a low pass filter, at fc = cutoff freq
-    //   The cutoff function is of type FFTFilter_Type
-    //   n is unused for FilterStep and FilterGaussian
-    //      the n for FilterButterworth & FilterFermi is typically an int > 1
-    //   Butterworth filter 1.0/(1.0 + (f/fc)^2n) [n=1,2,3...]
-    //      where at fc the amplitude is 1/2 and n (order) determines the cutoff slope
-    wxPlotData FFTHiPassFilter( double fc, wxPlotData::FFTFilter_Type filter, double n = 5 );
-    wxPlotData FFTLoPassFilter( double fc, wxPlotData::FFTFilter_Type filter, double n = 5 );
-    // Use FFT to make either a Notch filter (remove frequencies between low and high) or
-    //   a Band Pass (allow frequencies between low and high) filter
-    //   the cutoff can either be a step function,
-    //   or follow that of a Butterworth filter 1.0/(1.0 + (f/fc)^2n) [n=1,2,3...]
-    wxPlotData FFTNotchFilter( double lo, double hi, wxPlotData::FFTFilter_Type filter, double n = 5 );
-    wxPlotData FFTBandPassFilter( double lo, double hi, wxPlotData::FFTFilter_Type filter, double n = 5 );
-
-    // After FFT this curve, apply the filter (mult y points at each x) and transform back
-    wxPlotData FFTCustomFilter( const wxPlotFunction &func );
-
-    // Sorts the points by their x-values starting from the min to max
-    bool SortByX();
-    // Sorts the points by their y-values starting from the min to max
-    bool SortByY();
 
     //-------------------------------------------------------------------------
     // Get/Set Symbols to use for plotting - CreateSymbol is untested
@@ -419,7 +327,7 @@ bool wxClipboardSetPlotData(const wxPlotData& plotData);
 //#define wxDF_wxPlotData (wxDF_MAX+1010)  // works w/ GTK 1.2 non unicode
 extern const wxChar* wxDF_wxPlotData;      // wxT("wxDF_wxPlotData");
 
-class WXDLLIMPEXP_PLOTCTRL wxPlotDataObject : public wxTextDataObject
+class wxPlotDataObject : public wxTextDataObject
 {
 public:
     wxPlotDataObject();
