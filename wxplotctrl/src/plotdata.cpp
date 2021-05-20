@@ -110,9 +110,9 @@ void wxPlotDataRefData::Destroy()
 {
     if (!m_static)
     {
-        if ( m_Xdata  ) free( m_Xdata );
-        if ( m_Ydata  ) free( m_Ydata );
-        if ( m_Yidata ) free( m_Yidata );
+        if ( m_Xdata  ) delete[]m_Xdata;
+        if ( m_Ydata  ) delete[]m_Ydata;
+        if ( m_Yidata ) delete[]m_Yidata;
     }
 
     m_count    = 0;
@@ -627,7 +627,7 @@ void wxPlotData::SetYiData( double *yi_data )
 {
     wxCHECK_RET( Ok(), wxT("Invalid wxPlotData") );
 
-    if (M_PLOTDATA->m_Yidata) free(M_PLOTDATA->m_Yidata);
+    if (M_PLOTDATA->m_Yidata) delete[] (M_PLOTDATA->m_Yidata);
     M_PLOTDATA->m_Yidata = yi_data;
 }
 

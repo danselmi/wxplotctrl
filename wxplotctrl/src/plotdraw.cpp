@@ -485,7 +485,7 @@ void wxPlotDrawerXAxis::Draw(wxDC *dc, bool refresh)
     // Test code for sizing to show the extent of the axes
     dc->SetBrush( *wxTRANSPARENT_BRUSH );
     dc->SetPen( *wxRED_PEN );
-    dc->DrawRectangle(wxRect(wxPoint(0,0), clientSize));
+    dc->DrawRectangle(wxRect(wxPoint(0,0), dc->GetSize()));
 #endif // DRAW_BORDERS
 }
 
@@ -534,7 +534,7 @@ void wxPlotDrawerYAxis::Draw(wxDC *dc, bool refresh)
     // Test code for sizing to show the extent of the axes
     dc->SetBrush( *wxTRANSPARENT_BRUSH );
     dc->SetPen( *wxRED_PEN );
-    dc->DrawRectangle(wxRect(wxPoint(0,0), clientSize));
+    dc->DrawRectangle(wxRect(wxPoint(0,0), dc->GetSize()));
 #endif // DRAW_BORDERS
 }
 
