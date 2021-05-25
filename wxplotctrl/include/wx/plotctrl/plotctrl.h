@@ -851,7 +851,7 @@ protected:
     int          m_cursor_index;        // if data curve, index in curve
 
     wxArrayRangeIntSelection    m_dataSelections;  // for wxPlotData
-    wxArrayRangeDoubleSelection m_curveSelections; // for wxPlotCurve, wxPlotFunction
+    wxArrayRangeDoubleSelection m_curveSelections; // for wxPlotCurve
     int m_selection_type;
 
     wxArrayPlotMarker m_plotMarkers;    // extra markers to draw
