@@ -15,8 +15,8 @@
     #pragma interface "plotcurv.h"
 #endif
 
+#include "wx/geometry.h"
 #include "wx/clntdata.h"
-#include "wx/plotctrl/plotdefs.h"
 
 class wxPlotCurve;
 

@@ -19,11 +19,14 @@
 #include "wx/bitmap.h"
 #include "wx/window.h"
 
-#include "wx/plotctrl/plotdefs.h"
 #include "wx/plotctrl/plotcurv.h"
 #include "wx/plotctrl/plotdata.h"
 #include "wx/plotctrl/plotmark.h"
 #include "wx/plotctrl/range.h"
+
+// Check if value is >= min_val and <= max_val
+#define RINT(x) (int((x) >= 0 ? ((x) + 0.5) : ((x) - 0.5)))
+
 
 class wxDC;
 class wxNotifyEvent;

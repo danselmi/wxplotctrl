@@ -16,9 +16,6 @@
 
 #include "wx/dynarray.h"
 #include "wx/defs.h"
-#ifndef WX_DECLARE_OBJARRAY_WITH_DECL // for wx2.4 backwards compatibility
-    #define WX_DECLARE_OBJARRAY_WITH_DECL(T, name, expmode) WX_DECLARE_USER_EXPORTED_OBJARRAY(T, name, WXDLLIMPEXP_THINGS)
-#endif
 
 class wxRangeInt;
 class wxRangeDouble;

@@ -17,7 +17,6 @@
 
 #include "wx/bitmap.h"
 #include "wx/geometry.h"
-#include "wx/plotctrl/plotdefs.h"
 
 class wxPlotCtrl;
 class wxPlotMarker;

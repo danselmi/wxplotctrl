@@ -15,7 +15,6 @@
     #pragma interface "plotdraw.h"
 #endif
 
-#include "wx/plotctrl/plotdefs.h"
 #include "wx/plotctrl/plotmark.h"
 #include "wx/plotctrl/range.h"
 

@@ -16,7 +16,6 @@
 #endif
 
 #include "wx/print.h"
-#include "wx/plotctrl/plotdefs.h"
 
 class wxPlotCtrl;
 
