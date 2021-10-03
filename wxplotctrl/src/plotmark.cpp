@@ -8,28 +8,14 @@
 // Licence:     wxWindows license
 /////////////////////////////////////////////////////////////////////////////
 
-#if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma implementation "plotmark.h"
-#endif
-
-// For compilers that support precompilation, includes "wx.h".
-#include "wx/wxprec.h"
-
-#ifdef __BORLANDC__
-    #pragma hdrstop
-#endif
-
-#ifndef WX_PRECOMP
-    #include "wx/wx.h"
-#endif // WX_PRECOMP
-
+#include "wx/wx.h"
 #include "wx/image.h"
 
 #include "wx/plotctrl/plotmark.h"
 #include "wx/plotctrl/plotctrl.h"
 
 #include "wx/arrimpl.cpp"
-WX_DEFINE_OBJARRAY( wxArrayPlotMarker );
+WX_DEFINE_OBJARRAY(wxArrayPlotMarker);
 
 //-----------------------------------------------------------------------------
 // wxPlotMarkerRefData
@@ -41,7 +27,7 @@ public:
     wxPlotMarkerRefData(int type = 0, const wxRect2DDouble& rect = wxRect2DDouble())
         : wxObjectRefData(), m_markerType(type), m_rect(rect), m_size(wxSize(-1, -1)) {}
 
-    wxPlotMarkerRefData( const wxPlotMarkerRefData& data )
+    wxPlotMarkerRefData(const wxPlotMarkerRefData& data)
         : wxObjectRefData(), m_markerType(data.m_markerType),
           m_rect(data.m_rect), m_size(data.m_size), m_bitmap(data.m_bitmap),
           m_pen(data.m_pen), m_brush(data.m_brush) {}

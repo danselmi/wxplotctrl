@@ -11,10 +11,6 @@
 #ifndef _WX_PLOTPRINT_H_
 #define _WX_PLOTPRINT_H_
 
-#if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma interface "plotprnt.h"
-#endif
-
 #include "wx/print.h"
 
 class wxPlotCtrl;
@@ -29,7 +25,7 @@ class wxPlotPrintout : public wxPrintout
 public:
     wxPlotPrintout(wxPlotCtrl* plotWin, const wxString &title = wxEmptyString);
     bool OnPrintPage(int page);
-    bool HasPage(int page) { return page == 1; }
+    bool HasPage(int page) {return page == 1;}
     bool OnBeginDocument(int startPage, int endPage);
 
     void GetPageInfo(int *minPage, int *maxPage, int *selPageFrom, int *selPageTo)
@@ -46,7 +42,7 @@ public:
     bool ShowPrintSetupDialog();
     bool ShowPrintPageSetupDialog();
 
-    wxPlotCtrl *GetPlotCtrl() const { return m_plotWin; }
+    wxPlotCtrl *GetPlotCtrl() const {return m_plotWin;}
 
     // Get/Set the wxPrintData/wxPageSetupData that will be used
     //   if NULL then one will be created on first use and deleted when the
@@ -59,8 +55,8 @@ public:
     static bool GetPageSetupDataStatic();
     // Set the wxPrintData/PageSetupData, if !is_static then it will be deleted
     //   when the program exits
-    static void SetPrintData( wxPrintData *printData, bool is_static );
-    static void SetPageSetupData( wxPageSetupData *pageSetupData, bool is_static );
+    static void SetPrintData(wxPrintData *printData, bool is_static);
+    static void SetPageSetupData(wxPageSetupData *pageSetupData, bool is_static);
 
 protected:
     wxPlotCtrl *m_plotWin;

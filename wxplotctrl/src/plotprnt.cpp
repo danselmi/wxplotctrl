@@ -8,22 +8,8 @@
 // Licence:     wxWindows license
 /////////////////////////////////////////////////////////////////////////////
 
-#if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma implementation "plotprnt.h"
-#endif
-
-// For compilers that support precompilation, includes "wx.h".
-#include "wx/wxprec.h"
-
-#ifdef __BORLANDC__
-    #pragma hdrstop
-#endif
-
-#ifndef WX_PRECOMP
-    #include "wx/msgdlg.h"
-    #include "wx/dcmemory.h"
-#endif // WX_PRECOMP
-
+#include "wx/msgdlg.h"
+#include "wx/dcmemory.h"
 #include "wx/module.h"
 #include "wx/printdlg.h"
 
@@ -65,10 +51,10 @@ wxPageSetupData *wxPlotPrintout::GetPageSetupData(bool create_on_demand)
     return s_wxPlotPageSetupData;
 }
 
-bool wxPlotPrintout::GetPrintDataStatic()     { return s_wxPlotPrintdata_static; }
-bool wxPlotPrintout::GetPageSetupDataStatic() { return s_wxPlotPagesetupdata_static; }
+bool wxPlotPrintout::GetPrintDataStatic()     {return s_wxPlotPrintdata_static; }
+bool wxPlotPrintout::GetPageSetupDataStatic() {return s_wxPlotPagesetupdata_static; }
 
-void wxPlotPrintout::SetPrintData( wxPrintData *printData, bool is_static )
+void wxPlotPrintout::SetPrintData(wxPrintData *printData, bool is_static)
 {
     if (s_wxPlotPrintData && !s_wxPlotPrintdata_static)
         delete s_wxPlotPrintData;
@@ -76,7 +62,7 @@ void wxPlotPrintout::SetPrintData( wxPrintData *printData, bool is_static )
     s_wxPlotPrintData = printData;
     s_wxPlotPrintdata_static = is_static;
 }
-void wxPlotPrintout::SetPageSetupData( wxPageSetupData *pageSetupData, bool is_static )
+void wxPlotPrintout::SetPageSetupData(wxPageSetupData *pageSetupData, bool is_static)
 {
     if (s_wxPlotPageSetupData && !s_wxPlotPagesetupdata_static)
         delete s_wxPlotPageSetupData;
@@ -86,7 +72,7 @@ void wxPlotPrintout::SetPageSetupData( wxPageSetupData *pageSetupData, bool is_s
 }
 
 
-wxPlotPrintout::wxPlotPrintout( wxPlotCtrl* plotWin, const wxString &title )
+wxPlotPrintout::wxPlotPrintout(wxPlotCtrl* plotWin, const wxString &title)
                : wxPrintout(title), m_plotWin(plotWin)
 {
 }
@@ -112,7 +98,7 @@ bool wxPlotPrintout::OnPrintPage(int page_n)
 
     // Get the ppi of the screen and printer
     wxSize ppiScr,ppiPrn;
-    GetPPIScreen( &ppiScr.x, &ppiScr.y);
+    GetPPIScreen(&ppiScr.x, &ppiScr.y);
     GetPPIPrinter(&ppiPrn.x, &ppiPrn.y);
 
     float ppi_scale_x = float(ppiPrn.x)/float(ppiScr.x);
@@ -170,7 +156,7 @@ bool wxPlotPrintout::OnPrintPage(int page_n)
         dpi = double(ppiScr.x) * dc_pagepix_scale_x; //((double)pagePixSize.x / rect.width); //((double)rect.width / dcSize.x);
     }
 
-    m_plotWin->DrawWholePlot( dc, rect, dpi );
+    m_plotWin->DrawWholePlot(dc, rect, dpi);
     return true;
 }
 

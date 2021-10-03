@@ -11,15 +11,57 @@
 #ifndef _WX_PLOTDATA_H_
 #define _WX_PLOTDATA_H_
 
-#if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma interface "plotdata.h"
-#endif
-
 #include "wx/txtstrm.h"            // for wxEOL
-#include "wx/plotctrl/plotcurv.h"  // includes plotdefs.h
+#include "wx/geometry.h"
+#include "wx/clntdata.h"
 
 class wxRangeIntSelection;
 class wxPlotData;
+
+//-----------------------------------------------------------------------------
+// Utility functions
+//-----------------------------------------------------------------------------
+
+// Find y at point x along the line from (x0,y0)-(x1,y1), x0 must != x1
+extern double LinearInterpolateY(double x0, double y0,
+                                  double x1, double y1,
+                                  double x);
+// Find x at point y along the line from (x0,y0)-(x1,y1), y0 must != y1
+extern double LinearInterpolateX(double x0, double y0,
+                                  double x1, double y1,
+                                  double y);
+
+//----------------------------------------------------------------------------
+// Constants
+//----------------------------------------------------------------------------
+
+// defines wxArrayDouble for use as necessary
+//WX_DEFINE_USER_EXPORTED_ARRAY_DOUBLE(double, wxArrayDouble, class WXDLLIMPEXP_PLOTCTRL);
+
+// wxNullPlotBounds = wxRect2DDouble(0,0,0,0)
+extern const wxRect2DDouble wxNullPlotBounds;
+WX_DECLARE_OBJARRAY_WITH_DECL(wxPen, wxArrayPen, class);
+
+extern wxBitmap wxPlotSymbolNormal;
+extern wxBitmap wxPlotSymbolActive;
+extern wxBitmap wxPlotSymbolSelected;
+
+enum wxPlotSymbol_Type
+{
+    wxPLOTSYMBOL_ELLIPSE,
+    wxPLOTSYMBOL_RECTANGLE,
+    wxPLOTSYMBOL_CROSS,
+    wxPLOTSYMBOL_PLUS,
+    wxPLOTSYMBOL_MAXTYPE
+};
+
+enum wxPlotPen_Type
+{
+    wxPLOTPEN_NORMAL,
+    wxPLOTPEN_ACTIVE,
+    wxPLOTPEN_SELECTED,
+    wxPLOTPEN_MAXTYPE
+};
 
 //-----------------------------------------------------------------------------
 // wxPlotData consts and defines
@@ -27,18 +69,6 @@ class wxPlotData;
 
 // arbitray reasonable max size to avoid malloc errors
 #define wxPLOTDATA_MAX_SIZE 10000000
-
-enum wxPlotDataLoad_Type
-{
-    // store the header, ie. any #comment lines BEFORE the first line w/ valid data
-    //   use Get(Set)Header() to retrieve it
-    wxPLOTDATA_LOAD_HEADER = 0x0001,
-    // stop loading datafile if there is a blank line, will continue if a line is merely #commented out
-    //  ignores any blank lines before first line w/ data however
-    wxPLOTDATA_LOAD_BREAKONBLANKLINE = 0x0010,
-    // defaults used for loading a data file
-    wxPLOTDATA_LOAD_DEFAULT = wxPLOTDATA_LOAD_HEADER | wxPLOTDATA_LOAD_BREAKONBLANKLINE
-};
 
 //-----------------------------------------------------------------------------
 // wxPlotData
@@ -49,59 +79,38 @@ enum wxPlotDataLoad_Type
 //
 //-----------------------------------------------------------------------------
 
-// A uncreated wxPlotCurve for reference
-extern const wxPlotData wxNullPlotData;
-
-class wxPlotData : public wxPlotCurve
+class wxPlotData : public wxObject
 {
 public:
-    wxPlotData() : wxPlotCurve() {}
-    wxPlotData( const wxPlotData& plotData ):wxPlotCurve() { Create(plotData); }
+    wxPlotData():
+        wxObject() {}
+    wxPlotData(const wxPlotData& plotData):wxObject() {Create(plotData);}
 
-    wxPlotData( int points, bool zero = true ):wxPlotCurve() { Create(points, zero); }
-    wxPlotData( double *x_data, double *y_data, int points, bool static_data = false ):wxPlotCurve()
-        { Create( x_data, y_data, points, static_data ); }
-    virtual ~wxPlotData() {}
+    wxPlotData(int points, bool zero = true):wxObject() {Create(points, zero);}
+    wxPlotData(double *x_data, double *y_data, int points, bool static_data = false):wxObject()
+        {Create(x_data, y_data, points, static_data);}
+    virtual ~wxPlotData(){}
 
     // Ref the source plotdata
-    bool Create( const wxPlotData& plotData );
+    bool Create(const wxPlotData& plotData);
     // Allocate memory for given number of points, if zero then init to zeroes
     //   don't use uninitialized data, trying to plot it will cause problems
-    bool Create( int points, bool zero = true );
+    bool Create(int points, bool zero = true);
     // Assign the malloc(ed) data sets to this plotdata,
     //   if !static_data they'll be free(ed) on destruction
-    bool Create( double *x_data, double *y_data, int points, bool static_data = false );
+    bool Create(double *x_data, double *y_data, int points, bool static_data = false);
 
     // Make true (not refed) copy of this,
     //   if copy_all = true then copy header, filename, pens, etc
-    bool Copy( const wxPlotData &source, bool copy_all = false );
+    bool Copy(const wxPlotData &source, bool copy_all = false);
     // Only copy the header, filename, pens, etc... from the source
-    bool CopyExtra( const wxPlotData &source );
-
-    // Resize the data by appending or cropping points to/from the end
-    //   if zero then zero any added new points
-    bool Resize( int new_size, bool zero = true );
-    // Resize the data by appending or cropping points to/from the end.
-    //   Sets created values with x starting from last point + dx in steps of
-    //   dx with a value of y.
-    bool Resize( int new_size, double dx, double y );
-
-    // Append the source curve to the end, Yi data is copied only if both have it.
-    wxPlotData Append(const wxPlotData &source) const;
-    // Insert a the source curve at data index, Yi data is copied only if both have it.
-    wxPlotData Insert(const wxPlotData &source, int index) const;
-    // Delete a number of points in the curve, if count < 0 then delete to end
-    //   do not delete from 0 to end, it will assert, Destroy the data instead
-    wxPlotData Remove(int index, int count = -1) const;
-    // Get a sub-section of this curve from index of size count points.
-    //   if count < 0 then get data from index to end
-    wxPlotData GetSubPlotData(int index, int count = -1) const;
+    bool CopyExtra(const wxPlotData &source);
 
     // Unref the data
     void Destroy();
 
     // Is there data, has it been properly constructed?
-    bool Ok() const;
+    virtual bool Ok() const;
 
     // Get the number of points in the data set
     int GetCount() const;
@@ -111,9 +120,6 @@ public:
     // especially if reording X quantities and using the wxPlotCtrl
     virtual void CalcBoundingRect();
 
-    // are consecutive x points always > than the previous ones
-    bool GetIsXOrdered() const;
-
     //-------------------------------------------------------------------------
     // Get/Set data values
     //-------------------------------------------------------------------------
@@ -122,37 +128,31 @@ public:
     double *GetXData() const;
     double *GetYData() const;
 
-    // imaginary Y data, not normally created, but if !NULL then it will be free()ed, see FFT
-    double *GetYiData() const;
-    // use (double*)malloc(sizeof(double)*GetCount()) to create
-    // it'll be free()ed if the PlotData was NOT Created with existing arrays and static=true
-    void SetYiData( double *yi_data );
-
     // Get the point's value at this data index
-    double GetXValue( int index ) const;
-    double GetYValue( int index ) const;
-    wxPoint2DDouble GetPoint( int index ) const;
+    double GetXValue(int index) const;
+    double GetYValue(int index) const;
+    wxPoint2DDouble GetPoint(int index) const;
     // Interpolate if necessary to get the y value at this point,
     //   doesn't fail just returns ends if out of bounds
-    double GetY( double x ) const;
+    double GetY(double x) const;
 
     // Set the point at this data index, don't need to call CalcBoundingRect after
-    void SetXValue( int index, double x );
-    void SetYValue( int index, double y );
+    void SetXValue(int index, double x);
+    void SetYValue(int index, double y);
     void SetValue(int index, double x, double y);
-    void SetPoint(int index, const wxPoint2DDouble &pt) { SetValue(index, pt.m_x, pt.m_y); }
+    void SetPoint(int index, const wxPoint2DDouble &pt) {SetValue(index, pt.m_x, pt.m_y);}
 
     // Set a range of values starting at start_index for count points.
     //   If count = -1 go to end of data
-    void SetXValues( int start_index, int count = -1, double x = 0.0 );
-    void SetYValues( int start_index, int count = -1, double y = 0.0 );
+    void SetXValues(int start_index, int count = -1, double x = 0.0);
+    void SetYValues(int start_index, int count = -1, double y = 0.0);
 
     // Set a range of values to be steps starting at x_start with dx increment
     //   starts at start_index for count points, if count = -1 go to end
-    void SetXStepValues( int start_index, int count = -1,
-                         double x_start = 0.0, double dx = 1.0 );
-    void SetYStepValues( int start_index, int count = -1,
-                         double y_start = 0.0, double dy = 1.0 );
+    void SetXStepValues(int start_index, int count = -1,
+                        double x_start = 0.0, double dx = 1.0);
+    void SetYStepValues(int start_index, int count = -1,
+                        double y_start = 0.0, double dy = 1.0);
 
     enum Index_Type
     {
@@ -164,52 +164,27 @@ public:
     // find the first occurance of an index whose value is closest (index_round),
     //   or the next lower (index_floor), or next higher (index_ceil), to the given value
     //   always returns a valid index
-    int GetIndexFromX( double x, wxPlotData::Index_Type type = index_round ) const;
-    int GetIndexFromY( double y, wxPlotData::Index_Type type = index_round ) const;
+    int GetIndexFromX(double x, wxPlotData::Index_Type type = index_round) const;
+    int GetIndexFromY(double y, wxPlotData::Index_Type type = index_round) const;
     // find the first occurance of an index whose value is closest to x,y
     //    if x_range != 0 then limit search between +- x_range (useful for x-ordered data)
-    int GetIndexFromXY( double x, double y, double x_range=0 ) const;
+    int GetIndexFromXY(double x, double y, double x_range=0) const;
 
     // Find the average of the data starting at start_index for number of count points
     //   if count < 0 then to to last point
-    double GetAverage( int start_index = 0, int count = -1 ) const;
+    double GetAverage(int start_index = 0, int count = -1) const;
 
     // Get the minimum, maximum, and average x,y values for the ranges including
     //  the indexes where the min/maxes occurred.
     //  returns the number of points used.
-    int GetMinMaxAve( const wxRangeIntSelection& rangeSel,
+    int GetMinMaxAve(const wxRangeIntSelection& rangeSel,
                       wxPoint2DDouble* minXY, wxPoint2DDouble* maxXY,
                       wxPoint2DDouble* ave,
                       int *x_min_index, int *x_max_index,
-                      int *y_min_index, int *y_max_index ) const;
+                      int *y_min_index, int *y_max_index) const;
 
     // Returns array of indicies of nearest points where the data crosses the point y
-    wxArrayInt GetCrossing( double y_value ) const;
-
-    // Get the index of the first point with the min/max index value
-    //   if count == -1 then go to end of dataset
-    int GetMinYIndex(int start_index = 0, int end_index = -1) const;
-    int GetMaxYIndex(int start_index = 0, int end_index = -1) const;
-
-    //-------------------------------------------------------------------------
-    // Data processing functions
-    //-------------------------------------------------------------------------
-
-    // Add this offset to each data point (data += offset)
-    void OffsetX( double offset, int start_index = 0, int end_index = -1 );
-    void OffsetY( double offset, int start_index = 0, int end_index = -1 );
-    void OffsetXY( double offsetX, double offsetY, int start_index = 0, int end_index = -1 );
-
-    // Scale the data, multiply by scale around offset value (data = (data-offset)*scale+offset)
-    void ScaleX( double scale, double offset = 0.0, int start_index = 0, int end_index = -1 );
-    void ScaleY( double scale, double offset = 0.0, int start_index = 0, int end_index = -1 );
-    void ScaleXY( double scaleX, double scaleY, double offsetX = 0.0, double offsetY = 0.0,
-                  int start_index = 0, int end_index = -1 );
-
-    // Raise the data to the power
-    void PowerX( double power, int start_index = 0, int end_index = -1 );
-    void PowerY( double power, int start_index = 0, int end_index = -1 );
-    void PowerXY( double powerX, double powerY, int start_index = 0, int end_index = -1 );
+    wxArrayInt GetCrossing(double y_value) const;
 
     enum FuncModify_Type
     {
@@ -221,49 +196,6 @@ public:
         mult_yi
     };
 
-    wxPlotData Resample( double start_x, double dx, int points ) const;
-
-    // Take the x values of the curve and resample this curve's x values to match
-    //   interpolates if necessary. Only for x ordered curves.
-    //   returns empty plotdata if ranges don't match
-    wxPlotData Resample( const wxPlotData &source ) const;
-
-    // Add y values of curves 1 (this) and 2, after multiplying each curve by their factors
-    //    interpolating between points if necessary, but outlying points are ignored
-    //    if factor1,2 are both 1.0 then strictly add them
-    //    if factor1 = -1 and factor2 = 1 then subtract this curve (1) from 2...
-    wxPlotData Add( const wxPlotData &curve2, double factor1 = 1.0, double factor2 = 1.0 ) const;
-
-    // Runaverage the data using a window of width number of points
-    //   use odd number, it'll make it odd anyway
-    //   points closer then width/2 to ends are not changed
-    //   averaging is performed between start_index for count # points, if count < 0 to end
-    wxPlotData RunAverage( int width, int start_index=0, int count = -1 ) const;
-
-    // Simple function that does fabs(y) on the data
-    wxPlotData Abs() const;
-
-    // Linearize the y-points (straight line) from start_index for count points
-    //   x-values are not changed
-    wxPlotData LinearizeY(int start_index, int count = -1) const;
-
-    // Simple derivitive y_(n+1) - y_(n)
-    wxPlotData Derivitive() const;
-
-    // Variance = SumOverN(sqrt(E(yn-<y>)^2))/N
-    double Variance(int start_index = 0, int count = -1) const;
-
-    // returns a curve that is the variance at each point in a window of width
-    wxPlotData VarianceCurve(int width) const;
-
-    // Deviation = sqrt(E(y-y1)^2), don't divide by max-min+1 since
-    double Deviation( const wxPlotData &other, int min=0, int max=-1 ) const;
-    double CrossCorrelation( const wxPlotData &other, int runave=0, int min=0, int max=-1 ) const;
-
-    // Tries to line up these two curves by shifting the other along the x-axis
-    //   it returns the x shift that gives the minimum deviation
-    double MinShiftX( const wxPlotData &other ) const;
-
     //-------------------------------------------------------------------------
     // Get/Set Symbols to use for plotting - CreateSymbol is untested
     //   note: in MSW drawing bitmaps is sloooow! <-- so I haven't bothered finishing
@@ -272,27 +204,56 @@ public:
     // Get the symbol used for marking data points
     wxBitmap GetSymbol(wxPlotPen_Type colour_type=wxPLOTPEN_NORMAL) const;
     // Set the symbol to some arbitray bitmap, make size odd so it can be centered
-    void SetSymbol( const wxBitmap &bitmap, wxPlotPen_Type colour_type=wxPLOTPEN_NORMAL );
+    void SetSymbol(const wxBitmap &bitmap, wxPlotPen_Type colour_type=wxPLOTPEN_NORMAL);
     // Set the symbol from of the available types, using default colours if pen and brush are NULL
-    void SetSymbol( wxPlotSymbol_Type type, wxPlotPen_Type colour_type=wxPLOTPEN_NORMAL,
+    void SetSymbol(wxPlotSymbol_Type type, wxPlotPen_Type colour_type=wxPLOTPEN_NORMAL,
                     int width = 5, int height = 5,
                     const wxPen *pen = NULL, const wxBrush *brush = NULL);
     // Get a copy of the symbol thats created for SetSymbol
-    wxBitmap CreateSymbol( wxPlotSymbol_Type type, wxPlotPen_Type colour_type=wxPLOTPEN_NORMAL,
+    wxBitmap CreateSymbol(wxPlotSymbol_Type type, wxPlotPen_Type colour_type=wxPLOTPEN_NORMAL,
                            int width = 5, int height = 5,
                            const wxPen *pen = NULL, const wxBrush *brush = NULL);
+
+    // Bounding rect used for drawing the curve and...
+    //   if the width or height <= 0 then there's no bounds (or unknown)
+    //   wxPlotData : calculated from CalcBoundingRect and is well defined
+    //                DON'T call SetBoundingRect unless you know what you're doing
+    virtual wxRect2DDouble GetBoundingRect() const;
+    virtual void SetBoundingRect(const wxRect2DDouble &rect);
+
+    // Get/Set Pens for Normal, Active, Selected drawing
+    //  if these are not set it resorts to the defaults
+    wxPen GetPen(wxPlotPen_Type colour_type) const;
+    void SetPen(wxPlotPen_Type colour_type, const wxPen &pen);
+
+    // Get/Set Default Pens for Normal, Active, Selected drawing for all curves
+    //   these are the pens that are used when a wxPlotCurve/Function/Data is created
+    //   default: Normal(0,0,0,1,wxSOLID), Active(0,0,255,1,wxSOLID), Selected(255,0,0,1,wxSOLID)
+    static wxPen GetDefaultPen(wxPlotPen_Type colour_type);
+    static void SetDefaultPen(wxPlotPen_Type colour_type, const wxPen &pen);
+
+    //-------------------------------------------------------------------------
+    // Get/Set the ClientData in the ref data - see wxClientDataContainer
+    //  You can store any extra info here.
+    //-------------------------------------------------------------------------
+
+    void SetClientObject(wxClientData *data);
+    wxClientData *GetClientObject() const;
+
+    void SetClientData(void *data);
+    void *GetClientData() const;
 
     //-----------------------------------------------------------------------
     // Operators
 
     bool operator == (const wxPlotData& plotData) const
-        { return m_refData == plotData.m_refData; }
+        {return m_refData == plotData.m_refData;}
     bool operator != (const wxPlotData& plotData) const
-        { return m_refData != plotData.m_refData; }
+        {return m_refData != plotData.m_refData;}
 
     wxPlotData& operator = (const wxPlotData& plotData)
     {
-        if ( (*this) != plotData )
+        if ((*this) != plotData)
             Ref(plotData);
         return *this;
     }
@@ -339,4 +300,4 @@ public:
 
 #endif // wxUSE_DATAOBJ && wxUSE_CLIPBOARD
 
-#endif // _WX_PLOTDATA_H_
+#endif

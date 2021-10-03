@@ -11,10 +11,6 @@
 #ifndef _WX_PLOTDRAW_H_
 #define _WX_PLOTDRAW_H_
 
-#if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma interface "plotdraw.h"
-#endif
-
 #include "wx/plotctrl/plotmark.h"
 #include "wx/plotctrl/range.h"
 
@@ -23,12 +19,9 @@ class wxDC;
 class wxRangeIntSelection;
 class wxRangeDoubleSelection;
 class wxArrayRangeIntSelection;
-class wxArrayRangeDoubleSelection;
 
 class wxPlotCtrl;
-class wxPlotCurve;
 class wxPlotData;
-class wxPlotFunction;
 class wxPlotMarker;
 
 //-----------------------------------------------------------------------------
@@ -44,22 +37,22 @@ public:
     virtual void Draw(wxDC* dc, bool refresh) = 0;
 
     // Get/Set the owner plotctrl
-    wxPlotCtrl* GetOwner() const { return m_owner; }
-    void SetOwner(wxPlotCtrl* owner) { m_owner = owner; }
+    wxPlotCtrl* GetOwner() const {return m_owner;}
+    void SetOwner(wxPlotCtrl* owner) {m_owner = owner;}
 
     // Get/Get the rect in the DC to draw on
-    void SetDCRect(const wxRect& rect) { m_dcRect = rect; }
-    const wxRect& GetDCRect() const { return m_dcRect; }
+    void SetDCRect(const wxRect& rect) {m_dcRect = rect;}
+    const wxRect& GetDCRect() const {return m_dcRect;}
 
     // Get/Set the rect of the visible area in the plot window
-    void SetPlotViewRect(const wxRect2DDouble& rect) { m_plotViewRect = rect; }
-    const wxRect2DDouble& GetPlotViewRect() const { return m_plotViewRect; }
+    void SetPlotViewRect(const wxRect2DDouble& rect) {m_plotViewRect = rect;}
+    const wxRect2DDouble& GetPlotViewRect() const {return m_plotViewRect;}
 
     // Get/Set the scaling for drawing, fonts, pens, etc are scaled
-    void   SetPenScale(double scale) { m_pen_scale = scale; }
-    double GetPenScale() const { return m_pen_scale; }
-    void   SetFontScale(double scale) { m_font_scale = scale; }
-    double GetFontScale() const { return m_font_scale; }
+    void   SetPenScale(double scale) {m_pen_scale = scale;}
+    double GetPenScale() const {return m_pen_scale;}
+    void   SetFontScale(double scale) {m_font_scale = scale;}
+    double GetFontScale() const {return m_font_scale;}
 
 protected:
     wxPlotCtrl*    m_owner;
@@ -98,19 +91,19 @@ public:
 
     virtual void Draw(wxDC *dc, bool refresh) = 0;
 
-    void SetTickFont( const wxFont& font ) { m_tickFont = font; }
-    void SetLabelFont( const wxFont& font ) { m_labelFont = font; }
+    void SetTickFont(const wxFont& font) {m_tickFont = font;}
+    void SetLabelFont(const wxFont& font) {m_labelFont = font;}
 
-    void SetTickColour( const wxColour& colour ) { m_tickColour = colour; }
-    void SetLabelColour( const wxColour& colour ) { m_labelColour = colour; }
+    void SetTickColour(const wxColour& colour) {m_tickColour = colour;}
+    void SetLabelColour(const wxColour& colour) {m_labelColour = colour;}
 
-    void SetTickPen( const wxPen& pen ) { m_tickPen = pen; }
-    void SetBackgroundBrush( const wxBrush& brush ) { m_backgroundBrush = brush; }
+    void SetTickPen(const wxPen& pen) {m_tickPen = pen;}
+    void SetBackgroundBrush(const wxBrush& brush) {m_backgroundBrush = brush;}
 
-    void SetTickPositions( const wxArrayInt& pos ) { m_tickPositions = pos; }
-    void SetTickLabels( const wxArrayString& labels ) { m_tickLabels = labels; }
+    void SetTickPositions(const wxArrayInt& pos) {m_tickPositions = pos;}
+    void SetTickLabels(const wxArrayString& labels) {m_tickLabels = labels;}
 
-    void SetLabel( const wxString& label ) { m_label = label; }
+    void SetLabel(const wxString& label) {m_label = label;}
 
     // implementation
     wxArrayInt    m_tickPositions;
@@ -172,10 +165,10 @@ public:
     virtual void Draw(wxDC *WXUNUSED(dc), bool WXUNUSED(refresh)) {} // unused
     virtual void Draw(wxDC *dc, const wxString& keyString);
 
-    void SetFont(const wxFont& font) { m_font = font; }
-    void SetFontColour(const wxColour& colour) { m_fontColour = colour; }
+    void SetFont(const wxFont& font) {m_font = font;}
+    void SetFontColour(const wxColour& colour) {m_fontColour = colour;}
 
-    void SetKeyPosition(const wxPoint& pos) { m_keyPosition = pos; }
+    void SetKeyPosition(const wxPoint& pos) {m_keyPosition = pos;}
 
     // implementation
     wxFont          m_font;
@@ -189,22 +182,6 @@ public:
 
 private:
     DECLARE_ABSTRACT_CLASS(wxPlotDrawerKey);
-};
-
-//-----------------------------------------------------------------------------
-// wxPlotDrawerCurve
-//-----------------------------------------------------------------------------
-
-class wxPlotDrawerCurve : public wxPlotDrawerBase
-{
-public:
-    wxPlotDrawerCurve(wxPlotCtrl* owner) : wxPlotDrawerBase(owner) {}
-
-    virtual void Draw(wxDC *WXUNUSED(dc), bool WXUNUSED(refresh)) {} // unused
-    virtual void Draw(wxDC *dc, wxPlotCurve *curve, int curve_index);
-
-private:
-    DECLARE_ABSTRACT_CLASS(wxPlotDrawerCurve);
 };
 
 //-----------------------------------------------------------------------------

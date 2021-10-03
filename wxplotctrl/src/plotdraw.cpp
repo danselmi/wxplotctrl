@@ -8,27 +8,13 @@
 // Licence:     wxWindows license
 /////////////////////////////////////////////////////////////////////////////
 
-#if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma implementation "plotdraw.h"
-#endif
-
-// For compilers that support precompilation, includes "wx.h".
-#include "wx/wxprec.h"
-
-#ifdef __BORLANDC__
-    #pragma hdrstop
-#endif
-
-#ifndef WX_PRECOMP
-    #include "wx/wx.h"
-#endif // WX_PRECOMP
-
+#include "wx/wx.h"
 #include "wx/math.h"
+#include "wx/dynarray.h"
 
 #include "wx/plotctrl/plotdraw.h"
 #include "wx/plotctrl/plotctrl.h"
 #include "wx/plotctrl/plotmark.h"
-#include "wx/plotctrl/plotcurv.h"
 #include "wx/plotctrl/plotdata.h"
 
 #include <math.h>
@@ -57,13 +43,165 @@
 
 //inline void wxPLOTCTRL_DRAW_LINE(wxDC *dc, int win, int pen, int x0, int y0, int x1, int y1)
 #define wxPLOTCTRL_DRAW_LINE(dc, win, pen, x0, y0, x1, y1) \
-    dc->DrawLine( x0, y0, x1, y1 );
+    dc->DrawLine(x0, y0, x1, y1);
 
 //inline void wxPLOTCTRL_DRAW_CIRCLE(wxDC *dc, int win, int pen, int x0, int y0)
 #define wxPLOTCTRL_DRAW_ELLIPSE(dc, win, pen, x0, y0, w, h) \
     dc->DrawEllipse(x0, y0, w, h);
 
+class wxRangeDouble;
+class wxRangeDoubleSelection;
 
+WX_DECLARE_OBJARRAY_WITH_DECL(wxRangeDouble, wxArrayRangeDouble, class);
+WX_DECLARE_OBJARRAY_WITH_DECL(wxRangeDoubleSelection, wxArrayRangeDoubleSelection, class);
+
+//=============================================================================
+// wxRangeDouble
+//=============================================================================
+
+class wxRangeDouble
+{
+public:
+    inline wxRangeDouble(wxDouble min_=0, wxDouble max_=0) : m_min(min_), m_max(max_) {}
+
+    // Get the width of the range
+    inline wxDouble GetRange() const {return m_max - m_min;}
+    // Get/Set the min/max values of the range
+    inline wxDouble GetMin() const {return m_min;}
+    inline wxDouble GetMax() const {return m_max;}
+    inline void SetMin(wxDouble min_) {m_min = min_;}
+    inline void SetMax(wxDouble max_) {m_max = max_;}
+    inline void Set(wxDouble min_, wxDouble max_) {m_min = min_, m_max = max_;}
+
+    // Shift the range by i
+    void Shift(wxDouble i) {m_min += i; m_max += i;}
+
+    // Is the range empty, min < max
+    inline bool IsEmpty() const {return m_min > m_max;}
+
+    // Swap the min and max values
+    inline void SwapMinMax() {wxDouble temp = m_min; m_min = m_max; m_max = temp;}
+
+    // returns -1 for i < min, 0 for in range, +1 for i > m_max
+    inline int Position(wxDouble i) const {return i < m_min ? -1 : i > m_max ? 1 : 0;}
+
+    // Is this point or the range within this range
+    inline bool Contains(wxDouble i) const {return (i>=m_min)&&(i<=m_max);}
+    inline bool Contains(const wxRangeDouble &r) const
+         {return (r.m_min>=m_min)&&(r.m_max<=m_max);}
+
+    // returns if the range intersects the given range
+    inline bool Intersects(const wxRangeDouble& r) const
+        {return Intersect(r).IsEmpty();}
+    // returns the intersection of the range with the other
+    inline wxRangeDouble Intersect(const wxRangeDouble& r) const
+        {return wxRangeDouble(wxMax(m_min, r.m_min), wxMin(m_max, r.m_max));}
+    // returns the union of the range with the other
+    inline wxRangeDouble Union(const wxRangeDouble& r) const
+        {return wxRangeDouble(wxMin(m_min, r.m_min), wxMax(m_max, r.m_max));}
+
+    // no touches for double since what would be a good eps value?
+
+    // combine this single point with the range by expanding the m_min/m_max to contain it
+    //  if only_if_touching then only combine if there is overlap
+    //  returns true if the range has been changed at all, false if not
+    bool Combine(wxDouble i);
+    bool Combine(const wxRangeDouble &r, bool only_if_touching = false);
+
+    // delete range r from this, return true is anything was done
+    //   if r spans this then this and right become wxEmptyRangeInt
+    //   else if r is inside of this then this is the left side and right is the right
+    //   else if r.m_min > m_min then this is the left side
+    //   else if r.m_min < m_min this is the right side
+    bool Delete(const wxRangeDouble &r, wxRangeDouble *right=NULL);
+
+    // operators
+    // no copy ctor or assignment operator - the defaults are ok
+
+    // comparison
+    inline bool operator==(const wxRangeDouble& r) const {return (m_min == r.m_min)&&(m_max == r.m_max);}
+    inline bool operator!=(const wxRangeDouble& r) const {return !(*this == r);}
+
+    // Adding ranges unions them to create the largest range
+    inline wxRangeDouble operator+(const wxRangeDouble& r) const {return Union(r);}
+    inline wxRangeDouble& operator+=(const wxRangeDouble& r) {if(r.m_min<m_min) m_min=r.m_min; if(r.m_max>m_max) m_max=r.m_max; return *this;}
+    // Subtracting ranges intersects them to get the smallest range
+    inline wxRangeDouble operator-(const wxRangeDouble& r) const {return Intersect(r);}
+    inline wxRangeDouble& operator-=(const wxRangeDouble& r) {if(r.m_min>m_min) m_min=r.m_min; if(r.m_max<m_max) m_max=r.m_max; return *this;}
+
+    // Adding/Subtracting with a double shifts the range
+    inline wxRangeDouble operator+(const wxDouble i) const {return wxRangeDouble(m_min+i, m_max+i);}
+    inline wxRangeDouble operator-(const wxDouble i) const {return wxRangeDouble(m_min-i, m_max-i);}
+    inline wxRangeDouble& operator+=(const wxDouble i) {Shift(i); return *this;}
+    inline wxRangeDouble& operator-=(const wxDouble i) {Shift(-i); return *this;}
+
+    wxDouble m_min, m_max;
+};
+
+//=============================================================================
+// wxRangeDoubleSelection - ordered 1D array of wxRangeDoubles, combines to minimze size
+//=============================================================================
+
+class wxRangeDoubleSelection
+{
+public :
+    wxRangeDoubleSelection() {}
+    wxRangeDoubleSelection(const wxRangeDouble& range) {if (!range.IsEmpty()) m_ranges.Add(range);}
+    wxRangeDoubleSelection(const wxRangeDoubleSelection &ranges) {Copy(ranges);}
+
+    // Make a full copy of the source
+    void Copy(const wxRangeDoubleSelection &source)
+        {
+            m_ranges.Clear();
+            WX_APPEND_ARRAY(m_ranges, source.GetRangeArray());
+        }
+
+    // Get the number of individual ranges
+    inline int GetCount() const {return m_ranges.GetCount();}
+    // Get the ranges themselves to iterate though for example
+    const wxArrayRangeDouble& GetRangeArray() const {return m_ranges;}
+    // Get a single range
+    const wxRangeDouble& GetRange(int index) const;
+    inline const wxRangeDouble& Item(int index) const {return GetRange(index);}
+    // Get a range of the min range value and max range value
+    wxRangeDouble GetBoundingRange() const;
+    // Clear all the ranges
+    void Clear() {m_ranges.Clear();}
+
+    // Is this point or range contained in the selection
+    inline bool Contains(wxDouble i) const {return Index(i) != wxNOT_FOUND;}
+    inline bool Contains(const wxRangeDouble &range) const {return Index(range) != wxNOT_FOUND;}
+    // Get the index of the range that contains this, or wxNOT_FOUND
+    int Index(wxDouble i) const;
+    int Index(const wxRangeDouble &range) const;
+
+    // Get the nearest index of a range, index returned contains i or is the one just below
+    //   returns -1 if it's below all the selected ones, or no ranges
+    //   returns GetCount() if it's above all the selected ones
+    int NearestIndex(wxDouble i) const;
+
+    // Add the range to the selection, returning if anything was done, false if already selected
+    bool SelectRange(const wxRangeDouble &range);
+    // Remove the range to the selection, returning if anything was done, false if not already selected
+    bool DeselectRange(const wxRangeDouble &range);
+
+    // Set the min and max bounds of the ranges, returns true if anything was done
+    bool BoundRanges(const wxRangeDouble &range);
+
+    // operators
+    inline const wxRangeDouble& operator[](int index) const {return GetRange(index);}
+
+    wxRangeDoubleSelection& operator = (const wxRangeDoubleSelection& other) {Copy(other); return *this;}
+
+protected :
+    wxArrayRangeDouble m_ranges;
+};
+
+const wxRangeDouble wxEmptyRangeDouble(0, -1);
+#include "wx/arrimpl.cpp"
+
+WX_DEFINE_OBJARRAY(wxArrayRangeDouble);
+WX_DEFINE_OBJARRAY(wxArrayRangeDoubleSelection);
 
 // differs from wxRect2DDouble::Intersects by allowing for 0 width or height
 inline bool wxPlotRect2DDoubleIntersects(const wxRect2DDouble &a, const wxRect2DDouble &b)
@@ -79,18 +217,18 @@ inline bool wxPlotRect2DDoubleContains(double x, double y, const wxRect2DDouble 
 }
 
 // differs from wxRect2DDouble::GetOutCode by swaping top and bottom for plot origin
-//inline wxOutCode wxPlotRect2DDoubleOutCode( double x, double y, const wxRect2DDouble &rect )
+//inline wxOutCode wxPlotRect2DDoubleOutCode(double x, double y, const wxRect2DDouble &rect)
 //{
 //    return wxOutCode((x < rect.m_x         ? wxOutLeft   :
-//                     (x > rect.GetRight()  ? wxOutRight  : wxInside )) +
+//                     (x > rect.GetRight()  ? wxOutRight  : wxInside)) +
 //                     (y < rect.m_y         ? wxOutTop    :
-//                     (y > rect.GetBottom() ? wxOutBottom : wxInside )) );
+//                     (y > rect.GetBottom() ? wxOutBottom : wxInside)));
 //}
-#define wxPlotRect2DDoubleOutCode( x, y, rect ) \
+#define wxPlotRect2DDoubleOutCode(x, y, rect) \
            wxOutCode(((x) < rect.m_x         ? wxOutLeft   : \
-                     ((x) > rect.GetRight()  ? wxOutRight  : wxInside )) + \
+                     ((x) > rect.GetRight()  ? wxOutRight  : wxInside)) + \
                      ((y) < rect.m_y         ? wxOutTop    : \
-                     ((y) > rect.GetBottom() ? wxOutBottom : wxInside )) )
+                     ((y) > rect.GetBottom() ? wxOutBottom : wxInside)))
 
 
 // modified Cohen-Sutherland Algorithm for line clipping in at most two passes
@@ -112,15 +250,15 @@ enum ClipLine_Type
     ClippedOut     = 0x0100   // no intersection, so can't clip
 };
 
-int ClipLineToRect( double &x0, double &y0,
+int ClipLineToRect(double &x0, double &y0,
                     double &x1, double &y1,
-                    const wxRect2DDouble &rect )
+                    const wxRect2DDouble &rect)
 {
     if (!wxFinite(x0) || !wxFinite(y0) ||
         !wxFinite(x1) || !wxFinite(y1)) return ClippedOut;
 
-    wxOutCode out0 = wxPlotRect2DDoubleOutCode( x0, y0, rect );
-    wxOutCode out1 = wxPlotRect2DDoubleOutCode( x1, y1, rect );
+    wxOutCode out0 = wxPlotRect2DDoubleOutCode(x0, y0, rect);
+    wxOutCode out1 = wxPlotRect2DDoubleOutCode(x1, y1, rect);
 
     if ((out0 & out1) != wxInside) return ClippedOut;     // both outside on same side
     if ((out0 | out1) == wxInside) return ClippedNeither; // both inside
@@ -163,39 +301,39 @@ int ClipLineToRect( double &x0, double &y0,
         {
             y = rect.GetTop();
             x = x0 + (x1 - x0) * (y - y0) / (y1 - y0);
-            out = wxPlotRect2DDoubleOutCode( x, y, rect );
+            out = wxPlotRect2DDoubleOutCode(x, y, rect);
         }
         else if (out & wxOutBottom)
         {
             y = rect.GetBottom();
             x = x0 + (x1 - x0) * (y - y0) / (y1 - y0);
-            out = wxPlotRect2DDoubleOutCode( x, y, rect );
+            out = wxPlotRect2DDoubleOutCode(x, y, rect);
         }
         // check left and right
         if (out & wxOutRight)
         {
             x = rect.GetRight();
             y = y0 + (y1 - y0) * (x - x0) / (x1 - x0);
-            out = wxPlotRect2DDoubleOutCode( x, y, rect );
+            out = wxPlotRect2DDoubleOutCode(x, y, rect);
         }
         else if (out & wxOutLeft)
         {
             x = rect.GetLeft();
             y = y0 + (y1 - y0) * (x - x0) / (x1 - x0);
-            out = wxPlotRect2DDoubleOutCode( x, y, rect );
+            out = wxPlotRect2DDoubleOutCode(x, y, rect);
         }
         // check top and bottom again
         if (out & wxOutTop)
         {
             y = rect.GetTop();
             x = x0 + (x1 - x0) * (y - y0) / (y1 - y0);
-            out = wxPlotRect2DDoubleOutCode( x, y, rect );
+            out = wxPlotRect2DDoubleOutCode(x, y, rect);
         }
         else if (out & wxOutBottom)
         {
             y = rect.GetBottom();
             x = x0 + (x1 - x0) * (y - y0) / (y1 - y0);
-            out = wxPlotRect2DDoubleOutCode( x, y, rect );
+            out = wxPlotRect2DDoubleOutCode(x, y, rect);
         }
 
         if (!wxFinite(x) || !wxFinite(y)) return ClippedOut;
@@ -247,7 +385,7 @@ int ClipLineToRect( double &x0, double &y0,
 class SplineDrawer
 {
 public:
-    SplineDrawer() : m_dc(NULL) { }
+    SplineDrawer() : m_dc(NULL) {}
     // the wxRect2DDouble rect is the allowed dc area in pixel coords
     // wxRangeDoubleSelection is the ranges to use selPen, also in pixel coords
     // x1_, y1_, x2_, y2_ are the first 2 points to draw
@@ -256,7 +394,7 @@ public:
                 double x1_, double y1_, double x2_, double y2_)
     {
         m_dc = dc;
-        wxCHECK_RET( dc, wxT("invalid window dc") );
+        wxCHECK_RET(dc, wxT("invalid window dc"));
 
         m_selPen   = selPen;
         m_curPen   = curPen;
@@ -285,17 +423,17 @@ public:
     // After the last point call this to finish the drawing
     void EndSpline()
     {
-        wxCHECK_RET( m_dc, wxT("invalid window dc") );
+        wxCHECK_RET(m_dc, wxT("invalid window dc"));
         if (ClipLineToRect(m_cx1, m_cy1, m_x2, m_y2, m_rect) != ClippedOut)
             m_dc->DrawLine((int)m_cx1, (int)m_cy1, (int)m_x2, (int)m_y2);
     }
 
 private:
 
-    typedef struct SplineStack
+    struct SplineStack
     {
         double x1, y1, x2, y2, x3, y3, x4, y4;
-    } SplineStack;
+    };
 
     wxDC *m_dc;
     wxRect2DDouble m_rect;
@@ -311,9 +449,9 @@ private:
     wxRangeDoubleSelection *m_rangeSel;
 };
 
-void SplineDrawer::DrawSpline( double x, double y )
+void SplineDrawer::DrawSpline(double x, double y)
 {
-    wxCHECK_RET( m_dc, wxT("invalid window dc") );
+    wxCHECK_RET(m_dc, wxT("invalid window dc"));
     wxPen oldPen = m_dc->GetPen();
 
     bool is_selected = (oldPen == m_selPen);
@@ -410,8 +548,8 @@ void SplineDrawer::DrawSpline( double x, double y )
 //-----------------------------------------------------------------------------
 IMPLEMENT_ABSTRACT_CLASS(wxPlotDrawerBase, wxObject)
 
-wxPlotDrawerAxisBase::wxPlotDrawerAxisBase(wxPlotCtrl* owner)
-                     :wxPlotDrawerBase(owner)
+wxPlotDrawerAxisBase::wxPlotDrawerAxisBase(wxPlotCtrl* owner):
+    wxPlotDrawerBase(owner)
 {
     m_tickFont    = *wxNORMAL_FONT;
     m_labelFont   = *wxSWISS_FONT;
@@ -457,10 +595,10 @@ void wxPlotDrawerXAxis::Draw(wxDC *dc, bool refresh)
 
     wxFont tickFont = m_tickFont;
     if (m_font_scale != 1)
-        tickFont.SetPointSize( wxMax(2, RINT(tickFont.GetPointSize() * m_font_scale)) );
+        tickFont.SetPointSize(wxMax(2, RINT(tickFont.GetPointSize() * m_font_scale)));
 
     dc->SetTextForeground(m_tickColour);
-    dc->SetFont( tickFont );
+    dc->SetFont(tickFont);
 
     wxString label;
 
@@ -476,17 +614,17 @@ void wxPlotDrawerXAxis::Draw(wxDC *dc, bool refresh)
 
 //        if (!IsFinite(current, wxT("axis label is not finite")))
 //            break;
-//        label.Printf( m_xAxisTickFormat.c_str(), current );
+//        label.Printf(m_xAxisTickFormat.c_str(), current);
 //        dc->DrawText(label, m_xAxisTicks[i], y_pos);
 //        current += m_xAxisTick_step;
     }
 
-#ifdef DRAW_BORDERS
+#ifndef NDEBUG
     // Test code for sizing to show the extent of the axes
-    dc->SetBrush( *wxTRANSPARENT_BRUSH );
-    dc->SetPen( *wxRED_PEN );
+    dc->SetBrush(*wxTRANSPARENT_BRUSH);
+    dc->SetPen(*wxRED_PEN);
     dc->DrawRectangle(wxRect(wxPoint(0,0), dc->GetSize()));
-#endif // DRAW_BORDERS
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -510,32 +648,32 @@ void wxPlotDrawerYAxis::Draw(wxDC *dc, bool refresh)
 
     wxFont tickFont = m_tickFont;
     if (m_font_scale != 1)
-        tickFont.SetPointSize( wxMax(2, RINT(tickFont.GetPointSize() * m_font_scale)) );
+        tickFont.SetPointSize(wxMax(2, RINT(tickFont.GetPointSize() * m_font_scale)));
 
     dc->SetTextForeground(m_tickColour);
-    dc->SetFont( tickFont );
+    dc->SetFont(tickFont);
 
     wxString label;
     // double current = ceil(m_viewRect.GetTop() / m_yAxisTick_step) * m_yAxisTick_step;
     int i, count = m_tickLabels.GetCount(), lcnt = m_tickPositions.GetCount();
     for (i=0; i<count && i < lcnt; i++)
     {
-        dc->DrawText( m_tickLabels[i], 2,
-                     m_tickPositions[i] );
+        dc->DrawText(m_tickLabels[i], 2,
+                     m_tickPositions[i]);
 
 //        if (!IsFinite(current, wxT("axis label is not finite")))
 //            break;
-//        label.Printf( m_yAxisTickFormat.c_str(), current);
-//        dc->DrawText( label, 2, m_yAxisTicks[i] );
+//        label.Printf(m_yAxisTickFormat.c_str(), current);
+//        dc->DrawText(label, 2, m_yAxisTicks[i]);
 //        current += m_yAxisTick_step;
     }
 
-#ifdef DRAW_BORDERS
+#ifndef NDEBUG
     // Test code for sizing to show the extent of the axes
-    dc->SetBrush( *wxTRANSPARENT_BRUSH );
-    dc->SetPen( *wxRED_PEN );
+    dc->SetBrush(*wxTRANSPARENT_BRUSH);
+    dc->SetPen(*wxRED_PEN);
     dc->DrawRectangle(wxRect(wxPoint(0,0), dc->GetSize()));
-#endif // DRAW_BORDERS
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -567,7 +705,7 @@ void wxPlotDrawerKey::Draw(wxDC *dc, const wxString& keyString_)
 /*
     // GTK - kills X if font size is too small
     double x_scale = 1, y_scale = 1;
-    dc->GetUserScale( &x_scale, &y_scale );
+    dc->GetUserScale(&x_scale, &y_scale);
 
     wxFont font = m_owner->GetKeyFont();
     if (0 && x_scale != 1)
@@ -580,7 +718,7 @@ void wxPlotDrawerKey::Draw(wxDC *dc, const wxString& keyString_)
 
     wxFont keyFont = m_font;
     if (m_font_scale != 1)
-        keyFont.SetPointSize( wxMax(2, RINT(keyFont.GetPointSize() * m_font_scale)) );
+        keyFont.SetPointSize(wxMax(2, RINT(keyFont.GetPointSize() * m_font_scale)));
 
     int key_line_width  = RINT(m_key_line_width  * m_pen_scale);
     int key_line_margin = RINT(m_key_line_margin * m_pen_scale);
@@ -640,80 +778,6 @@ void wxPlotDrawerKey::Draw(wxDC *dc, const wxString& keyString_)
 }
 
 //-----------------------------------------------------------------------------
-// wxPlotDrawerCurve
-//-----------------------------------------------------------------------------
-IMPLEMENT_ABSTRACT_CLASS(wxPlotDrawerCurve, wxPlotDrawerBase)
-
-void wxPlotDrawerCurve::Draw(wxDC *dc, wxPlotCurve *curve, int curve_index)
-{
-    wxCHECK_RET(dc && m_owner && curve && curve->Ok(), wxT("invalid curve"));
-    INITIALIZE_FAST_GRAPHICS
-
-    wxRect dcRect(GetDCRect());
-
-    int i, j0, j1;
-    double x0, x1, y1, yy0, yy1;
-    x0 = m_owner->GetPlotCoordFromClientX(0);
-    yy0 = curve->GetY(x0);
-
-    wxRect2DDouble subViewRect = m_owner->GetPlotRectFromClientRect( dcRect );
-
-    int right = dcRect.GetRight();
-
-    wxPen currentPen = (curve_index == m_owner->GetActiveIndex()) ? curve->GetPen(wxPLOTPEN_ACTIVE)
-                                                                  : curve->GetPen(wxPLOTPEN_NORMAL);
-    wxPen selectedPen = curve->GetPen(wxPLOTPEN_SELECTED);
-
-    if (m_pen_scale != 1)
-    {
-        currentPen.SetWidth(int(currentPen.GetWidth() * m_pen_scale));
-        selectedPen.SetWidth(int(selectedPen.GetWidth() * m_pen_scale));
-    }
-
-    dc->SetPen(currentPen);
-
-    const wxRangeDoubleSelection *ranges = m_owner->GetCurveSelection(curve_index);
-    bool selected = false;
-
-    int clipped = ClippedNeither;
-
-    for (i=dcRect.x; i<right; i++)
-    {
-        x1 = m_owner->GetPlotCoordFromClientX(i);
-        y1 = yy1 = curve->GetY(x1);
-
-        clipped = ClipLineToRect(x0, yy0, x1, yy1, subViewRect);
-
-        if (selected != ranges->Contains(x1))
-        {
-            if (selected)
-                dc->SetPen(currentPen);
-            else
-                dc->SetPen(selectedPen);
-
-            selected = !selected;
-        }
-
-        if (clipped != ClippedOut)
-        {
-            j0 = m_owner->GetClientCoordFromPlotY(yy0);
-            j1 = m_owner->GetClientCoordFromPlotY(yy1);
-            wxPLOTCTRL_DRAW_LINE(dc, window, pen, i-1, j0, i, j1);
-
-            if (selected && !((clipped & ClippedSecond) != 0))
-            {
-                wxPLOTCTRL_DRAW_ELLIPSE(dc, window, pen, i, j1, 2, 2);
-            }
-        }
-
-        x0 = x1;
-        yy0 = y1;
-    }
-
-    dc->SetPen(wxNullPen);
-}
-
-//-----------------------------------------------------------------------------
 // wxPlotDrawerDataCurve
 //-----------------------------------------------------------------------------
 IMPLEMENT_ABSTRACT_CLASS(wxPlotDrawerDataCurve, wxPlotDrawerBase)
@@ -725,9 +789,9 @@ void wxPlotDrawerDataCurve::Draw(wxDC *dc, wxPlotData* curve, int curve_index)
 
     wxRect dcRect(GetDCRect());
 
-    wxRect2DDouble viewRect( GetPlotViewRect() ); //m_viewRect );
-    wxRect2DDouble subViewRect( m_owner->GetPlotRectFromClientRect(dcRect) );
-    wxRect2DDouble curveRect( curve->GetBoundingRect() );
+    wxRect2DDouble viewRect(GetPlotViewRect()); //m_viewRect);
+    wxRect2DDouble subViewRect(m_owner->GetPlotRectFromClientRect(dcRect));
+    wxRect2DDouble curveRect(curve->GetBoundingRect());
     if (!wxPlotRect2DDoubleIntersects(curveRect, subViewRect)) return;
 
 /*  // FIXME - drawing symbol bitmaps in MSW is very slow
@@ -750,20 +814,7 @@ void wxPlotDrawerDataCurve::Draw(wxDC *dc, wxPlotData* curve, int curve_index)
 */
 
     // find the starting and ending indexes into the data curve
-    int n, n_start, n_end;
-    bool x_ordered = curve->GetIsXOrdered();
-
-    if (x_ordered)
-    {
-        n_start = curve->GetIndexFromX(subViewRect.GetLeft(), wxPlotData::index_floor);
-        n_end   = curve->GetIndexFromX(subViewRect.GetRight(), wxPlotData::index_ceil);
-        n_end++; // for statement comparison is <
-    }
-    else
-    {
-        n_start = 0;
-        n_end   = curve->GetCount();
-    }
+    int n, n_start = 0, n_end = curve->GetCount();
 
     // set the pens to draw with
     wxPen currentPen = (curve_index == m_owner->GetActiveIndex()) ? curve->GetPen(wxPLOTPEN_ACTIVE)
@@ -789,7 +840,7 @@ void wxPlotDrawerDataCurve::Draw(wxDC *dc, wxPlotData* curve, int curve_index)
             min_sel = range.m_min;
             max_sel = range.m_max;
             if (range.Contains(n_start))
-                dc->SetPen( selectedPen );
+                dc->SetPen(selectedPen);
 
             break;
         }
@@ -818,7 +869,6 @@ void wxPlotDrawerDataCurve::Draw(wxDC *dc, wxPlotData* curve, int curve_index)
     if (draw_spline)
     {
         wxRangeDouble viewRange(viewRect.m_x, viewRect.GetRight());
-        wxRangeDouble dcRange(dcRect.x, dcRect.GetRight());
 
         for (int r = n_range; r < range_count; r++)
         {
@@ -870,23 +920,23 @@ void wxPlotDrawerDataCurve::Draw(wxDC *dc, wxPlotData* curve, int curve_index)
             }
 
             if (n == min_sel)
-                dc->SetPen( selectedPen );
+                dc->SetPen(selectedPen);
 
             if (draw_symbols && !((clipped & ClippedSecond) != 0) &&
                 ((i0 != i1) || (j0 != j1) || (n == min_sel) || (n == n_start)))
             {
-                //dc->DrawBitmap( bitmap, i1 - bitmapHalfWidth, j1 - bitmapHalfHeight, true );
+                //dc->DrawBitmap(bitmap, i1 - bitmapHalfWidth, j1 - bitmapHalfHeight, true);
                 wxPLOTCTRL_DRAW_ELLIPSE(dc, window, pen, i1, j1, 2, 2);
             }
         }
         else if (n == min_sel)
         {
-            dc->SetPen( selectedPen );
+            dc->SetPen(selectedPen);
         }
 
         if (n == max_sel)
         {
-            dc->SetPen( currentPen );
+            dc->SetPen(currentPen);
             if (n_range < range_count - 1)
             {
                 n_range++;
@@ -931,7 +981,7 @@ void wxPlotDrawerMarker::Draw(wxDC *dc, const wxArrayPlotMarker& markers)
     INITIALIZE_FAST_GRAPHICS
 
     wxRect dcRect(GetDCRect());
-    wxRect2DDouble subViewRect = m_owner->GetPlotRectFromClientRect( dcRect );
+    wxRect2DDouble subViewRect = m_owner->GetPlotRectFromClientRect(dcRect);
 
     double x0 = 0, y0 = 0, x1 = 0, y1 = 0;
     int n, count = markers.GetCount();
@@ -1073,3 +1123,294 @@ void wxPlotDrawerMarker::Draw(wxDC *dc, const wxArrayPlotMarker& markers)
         }
     }
 }
+
+//=============================================================================
+// wxRangeDouble
+//=============================================================================
+
+bool wxRangeDouble::Combine(double i)
+{
+    if      (i < m_min) {m_min = i; return true;}
+    else if (i > m_max) {m_max = i; return true;}
+    return false;
+}
+
+bool wxRangeDouble::Combine(const wxRangeDouble &r, bool only_if_touching)
+{
+    if (only_if_touching)
+    {
+        if (Contains(r))
+        {
+            *this+=r;
+            return true;
+        }
+    }
+    else
+    {
+        bool added = false;
+        if (r.m_min < m_min) {m_min = r.m_min; added = true;}
+        if (r.m_max > m_max) {m_max = r.m_max; added = true;}
+        return added;
+    }
+    return false;
+}
+
+bool wxRangeDouble::Delete(const wxRangeDouble &r, wxRangeDouble *right)
+{
+    if (!Contains(r))
+        return false;
+
+    if (right) *right = wxEmptyRangeDouble;
+
+    if (r.m_min <= m_min)
+    {
+        if (r.m_max >= m_max)
+        {
+            *this = wxEmptyRangeDouble;
+            return true;
+        }
+
+        m_min = r.m_max;
+        return true;
+    }
+
+    if (r.m_max >= m_max)
+    {
+        m_max = r.m_min;
+        return true;
+    }
+
+    if (right)
+        *right = wxRangeDouble(r.m_max, m_max);
+
+    m_max = r.m_min;
+    return true;
+}
+
+//=============================================================================
+// wxRangeDoubleSelection
+//=============================================================================
+const wxRangeDouble& wxRangeDoubleSelection::GetRange(int index) const
+{
+    wxCHECK_MSG((index>=0) && (index<int(m_ranges.GetCount())), wxEmptyRangeDouble, wxT("Invalid index"));
+    return m_ranges[index];
+}
+
+wxRangeDouble wxRangeDoubleSelection::GetBoundingRange() const
+{
+    if (int(m_ranges.GetCount()) < 1) return wxEmptyRangeDouble;
+    return wxRangeDouble(m_ranges[0].m_min, m_ranges[m_ranges.GetCount()-1].m_max);
+}
+
+int wxRangeDoubleSelection::Index(wxDouble i) const
+{
+    int count = m_ranges.GetCount();
+    if (count < 1) return wxNOT_FOUND;
+
+    if (i < m_ranges[0].m_min) return wxNOT_FOUND;
+    if (i > m_ranges[count-1].m_max) return wxNOT_FOUND;
+
+    // Binary search
+    int res, tmp, lo = 0, hi = count;
+
+    while (lo < hi)
+    {
+        tmp = (lo + hi)/2;
+        res = m_ranges[tmp].Position(i);
+
+        if (res == 0)
+            return tmp;
+        else if (res < 0)
+            hi = tmp;
+        else //if (res > 0)
+            lo = tmp + 1;
+    }
+
+    return wxNOT_FOUND;
+
+}
+
+int wxRangeDoubleSelection::Index(const wxRangeDouble &r) const
+{
+    int i, count = m_ranges.GetCount();
+    for (i=0; i<count; i++) if (m_ranges[i].Contains(r)) return i;
+    return wxNOT_FOUND;
+}
+
+int wxRangeDoubleSelection::NearestIndex(wxDouble i) const
+{
+    int count = m_ranges.GetCount();
+    if (count < 1) return -1;
+
+    if (i < m_ranges[0].m_min) return -1;
+    if (i > m_ranges[count-1].m_max) return count;
+
+    // Binary search
+    int res, tmp, lo = 0, hi = count;
+
+    while (lo < hi)
+    {
+        tmp = (lo + hi)/2;
+        res = m_ranges[tmp].Position(i);
+
+        if (res == 0)
+            return tmp;
+        else if ((i >= m_ranges[tmp].m_max) && (i < m_ranges[wxMin(tmp+1, count-1)].m_min))
+            return tmp;
+        else if (res < 0)
+            hi = tmp;
+        else //if (res > 0)
+            lo = tmp + 1;
+    }
+
+    // oops shouldn't get here
+    wxCHECK_MSG(0, -1, wxT("Error calculating NearestIndex in wxRangeDoubleSelection"));
+}
+
+bool wxRangeDoubleSelection::SelectRange(const wxRangeDouble &range)
+{
+    wxCHECK_MSG(!range.IsEmpty(), false, wxT("Invalid Selection Range"));
+
+    // Try to find a range that includes this one and combine it, else insert it, else append it
+    bool done = false;
+    int i, count = m_ranges.GetCount();
+    int nearest = count > 0 ? NearestIndex(range.m_min) : -1;
+
+    if (nearest < 0)
+    {
+        if (!((count > 0) && m_ranges[0].Combine(range, true)))
+            m_ranges.Insert(range, 0);
+        return true;
+    }
+    else if (nearest == count)
+    {
+        if (!((count > 0) && m_ranges[count-1].Combine(range, true)))
+            m_ranges.Add(range);
+        return true;
+    }
+    else
+    {
+        if (m_ranges[nearest].Contains(range))
+            return false;
+
+        for (i=nearest; i<count; i++)
+        {
+            if (m_ranges[i].Combine(range, true))
+            {
+                done = true;
+                break;
+            }
+            else if (range.m_max < m_ranges[i].m_min)
+            {
+                m_ranges.Insert(range, i);
+                return true;
+            }
+        }
+        for (i=wxMax(nearest-1, 1); i<int(m_ranges.GetCount()); i++)
+        {
+            if (range.m_max+1 < m_ranges[i-1].m_min)
+                break;
+            else if (m_ranges[i-1].Combine(m_ranges[i], true))
+            {
+                m_ranges.RemoveAt(i);
+                i--;
+            }
+        }
+    }
+
+#ifdef CHECK_RANGES
+    printf("Selecting ranges %g %g count %d\n", range.m_min, range.m_max, m_ranges.GetCount());
+
+    for (i=1; i<int(m_ranges.GetCount()); i++)
+    {
+        if (m_ranges[i-1].Contains(m_ranges[i]))
+            printf("Error in Selecting ranges %g %g, %g %g count %d\n", m_ranges[i-1].m_min, m_ranges[i-1].m_max, m_ranges[i].m_min, m_ranges[i].m_max, m_ranges.GetCount());
+        //if (m_ranges[i-1].Touches(m_ranges[i]))
+        //    printf("Could have minimzed ranges %g %g, %g %g count %d\n", m_ranges[i-1].m_min, m_ranges[i-1].m_max, m_ranges[i].m_min, m_ranges[i].m_max, m_ranges.GetCount());
+    }
+    fflush(stdout);
+#endif // CHECK_RANGES
+
+    return done;
+}
+
+bool wxRangeDoubleSelection::DeselectRange(const wxRangeDouble &range)
+{
+    wxCHECK_MSG(!range.IsEmpty(), false, wxT("Invalid Selection Range"));
+
+    bool done = false;
+    int i, count = m_ranges.GetCount();
+    int nearest = count > 0 ? NearestIndex(range.m_min) : -1;
+
+    if ((nearest < 0) || (nearest == count))
+        return false;
+
+    wxRangeDouble r;
+    for (i=nearest; i<int(m_ranges.GetCount()); i++)
+    {
+        if (range.m_max < m_ranges[i].m_min)
+            break;
+        else if (m_ranges[i].Delete(range, &r))
+        {
+            if (m_ranges[i].IsEmpty())
+            {
+                m_ranges.RemoveAt(i);
+                i = (i > 0) ? i-1 : -1;
+            }
+            else if (!r.IsEmpty())
+                m_ranges.Insert(r, i+1);
+
+            done = true;
+        }
+    }
+
+    return done;
+}
+
+bool wxRangeDoubleSelection::BoundRanges(const wxRangeDouble& range)
+{
+    wxCHECK_MSG(!range.IsEmpty(), false, wxT("Invalid Bounding Range"));
+    int i, count = m_ranges.GetCount();
+    bool done = false;
+
+    for (i = 0; i < count; i++)
+    {
+        if (m_ranges[i].m_min >= range.m_min)
+            break;
+
+        if (m_ranges[i].m_max < range.m_min) // range is out of bounds
+        {
+            done = true;
+            m_ranges.RemoveAt(i);
+            count--;
+            i--;
+        }
+        else
+        {
+            done = true;
+            m_ranges[i].m_min = range.m_min;
+            break;
+        }
+    }
+
+    for (i = m_ranges.GetCount() - 1; i >= 0; i--)
+    {
+        if (m_ranges[i].m_max <= range.m_max)
+            break;
+
+        if (m_ranges[i].m_min > range.m_max) // range is out of bounds
+        {
+            done = true;
+            m_ranges.RemoveAt(i);
+        }
+        else
+        {
+            done = true;
+            m_ranges[i].m_max = range.m_max;
+            break;
+        }
+    }
+
+    return done;
+}
+
