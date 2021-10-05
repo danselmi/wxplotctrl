@@ -608,7 +608,7 @@ void wxPlotDrawerXAxis::Draw(wxDC *dc, bool refresh)
     int y_pos = (GetDCRect().height - y)/2 + 2; // FIXME I want to center this
     // double current = ceil(m_viewRect.GetLeft() / m_xAxisTick_step) * m_xAxisTick_step;
     int i, count = m_tickPositions.GetCount();
-    for (i=0; i<count; i++)
+    for (i = 0; i < count; i++)
     {
         dc->DrawText(m_tickLabels[i], m_tickPositions[i], y_pos);
 
@@ -656,7 +656,7 @@ void wxPlotDrawerYAxis::Draw(wxDC *dc, bool refresh)
     wxString label;
     // double current = ceil(m_viewRect.GetTop() / m_yAxisTick_step) * m_yAxisTick_step;
     int i, count = m_tickLabels.GetCount(), lcnt = m_tickPositions.GetCount();
-    for (i=0; i<count && i < lcnt; i++)
+    for (i = 0; i < count && i < lcnt; i++)
     {
         dc->DrawText(m_tickLabels[i], 2,
                      m_tickPositions[i]);

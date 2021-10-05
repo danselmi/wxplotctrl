@@ -69,16 +69,6 @@ WX_DECLARE_OBJARRAY_WITH_DECL(wxPoint2DDouble, wxArrayPoint2DDouble, class);
 WX_DECLARE_OBJARRAY_WITH_DECL(wxRect2DDouble,  wxArrayRect2DDouble, class);
 WX_DECLARE_OBJARRAY_WITH_DECL(wxPlotData,      wxArrayPlotData, class);
 
-// IDs for the wxPlotCtrl children windows
-enum
-{
-    ID_PLOTCTRL_X_AXIS = 100,
-    ID_PLOTCTRL_Y_AXIS,
-    ID_PLOTCTRL_AREA,
-    ID_PLOTCTRL_X_SCROLLBAR,
-    ID_PLOTCTRL_Y_SCROLLBAR
-};
-
 // What type of axis for wxPlotCtrlAxis window
 enum wxPlotCtrlAxis_Type
 {
@@ -114,19 +104,6 @@ enum wxPlotCtrlSelection_Type
     wxPLOTCTRL_SELECT_SINGLE_CURVE, // only one curve may have selections at once
     wxPLOTCTRL_SELECT_SINGLE_PER_CURVE, // multiple curves may one have one selection each
     wxPLOTCTRL_SELECT_MULTIPLE      // multiple curves may have multiple selections
-};
-
-// Redraw parts or all of the windows
-enum wxPlotCtrlRedraw_Type
-{
-    wxPLOTCTRL_REDRAW_NONE       = 0x000,  // do nothing
-    wxPLOTCTRL_REDRAW_PLOT       = 0x001,  // redraw only the plot area
-    wxPLOTCTRL_REDRAW_XAXIS      = 0x002,  // redraw x-axis, combine w/ redraw_plot
-    wxPLOTCTRL_REDRAW_YAXIS      = 0x004,  // redraw y-axis, combine w/ redraw_plot
-    wxPLOTCTRL_REDRAW_WINDOW     = 0x008,  // wxPlotCtrl container window
-    wxPLOTCTRL_REDRAW_WHOLEPLOT  = wxPLOTCTRL_REDRAW_PLOT|wxPLOTCTRL_REDRAW_XAXIS|wxPLOTCTRL_REDRAW_YAXIS,
-    wxPLOTCTRL_REDRAW_EVERYTHING = wxPLOTCTRL_REDRAW_WHOLEPLOT|wxPLOTCTRL_REDRAW_WINDOW,
-    wxPLOTCTRL_REDRAW_BLOCKER    = 0x010   // don't let OnPaint redraw, used internally
 };
 
 // What title, axis label the textctrl should edit
@@ -500,29 +477,23 @@ public:
 
     // Use a full width/height crosshair as a cursor
     bool GetCrossHairCursor() const {return m_crosshair_cursor;}
-    void SetCrossHairCursor(bool useCrosshairCursor = false)
-        {m_crosshair_cursor = useCrosshairCursor;
-          m_area->m_mousePt = wxPoint(-1,-1); Redraw(wxPLOTCTRL_REDRAW_PLOT);}
+    void SetCrossHairCursor(bool useCrosshairCursor = false);
 
     // Draw the data curve symbols on the plotctrl
     bool GetDrawSymbols() const {return m_draw_symbols;}
-    void SetDrawSymbols(bool drawsymbols = true)
-        {m_draw_symbols = drawsymbols; Redraw(wxPLOTCTRL_REDRAW_PLOT);}
+    void SetDrawSymbols(bool drawsymbols = true);
 
     // Draw the interconnecting straight lines between data points
     bool GetDrawLines() const {return m_draw_lines;}
-    void SetDrawLines(bool drawlines = true)
-        {m_draw_lines = drawlines; Redraw(wxPLOTCTRL_REDRAW_PLOT);}
+    void SetDrawLines(bool drawlines = true);
 
     // Draw the interconnecting splines between data points
     bool GetDrawSpline() const {return m_draw_spline;}
-    void SetDrawSpline(bool drawspline = false)
-        {m_draw_spline = drawspline; Redraw(wxPLOTCTRL_REDRAW_PLOT);}
+    void SetDrawSpline(bool drawspline = false);
 
     // Draw the plot grid over the whole window, else just tick marks at edge
     bool GetDrawGrid() const {return m_draw_grid;}
-    void SetDrawGrid(bool drawgrid = true)
-        {m_draw_grid = drawgrid; Redraw(wxPLOTCTRL_REDRAW_PLOT);}
+    void SetDrawGrid(bool drawgrid = true);
 
     // Try to fit the window to show all curves when a new curve is added
     bool GetFitPlotOnNewCurve() const {return m_fit_on_new_curve;}
@@ -620,7 +591,7 @@ public:
     // Show a key with the function/data names, pos is %width and %height (0-100)
     const wxString& GetKeyString() const {return m_keyString;}
     bool GetShowKey() const {return m_show_key;}
-    void SetShowKey(bool show) {m_show_key = show; Redraw(wxPLOTCTRL_REDRAW_PLOT);}
+    void SetShowKey(bool show);
     wxPoint GetKeyPosition() const;
     bool GetKeyInside() const;
     void SetKeyPosition(const wxPoint &pos, bool stay_inside = true);

@@ -38,13 +38,6 @@
 #ifdef min
     #undef min
 #endif
-#ifdef GetYValue   // Visual Studio 7 defines this
-    #undef GetYValue
-#endif
-
-//-----------------------------------------------------------------------------
-// Consts
-//-----------------------------------------------------------------------------
 
 #define MAX_PLOT_ZOOMS 5
 #define TIC_STEPS 3
@@ -181,6 +174,28 @@ wxString wxPlotCtrlEvent::GetEventName(wxEventType eventType)
 
     return wxT("Unknown Event Type");
 }
+
+// IDs for the wxPlotCtrl children windows
+namespace {
+    int ID_PLOTCTRL_X_AXIS = wxNewId();
+    int ID_PLOTCTRL_Y_AXIS = wxNewId();
+    int ID_PLOTCTRL_AREA = wxNewId();
+    int ID_PLOTCTRL_X_SCROLLBAR = wxNewId();
+    int ID_PLOTCTRL_Y_SCROLLBAR = wxNewId();
+}
+
+// Redraw parts or all of the windows
+enum wxPlotCtrlRedraw_Type
+{
+    wxPLOTCTRL_REDRAW_NONE       = 0x000,  // do nothing
+    wxPLOTCTRL_REDRAW_PLOT       = 0x001,  // redraw only the plot area
+    wxPLOTCTRL_REDRAW_XAXIS      = 0x002,  // redraw x-axis, combine w/ redraw_plot
+    wxPLOTCTRL_REDRAW_YAXIS      = 0x004,  // redraw y-axis, combine w/ redraw_plot
+    wxPLOTCTRL_REDRAW_WINDOW     = 0x008,  // wxPlotCtrl container window
+    wxPLOTCTRL_REDRAW_WHOLEPLOT  = wxPLOTCTRL_REDRAW_PLOT|wxPLOTCTRL_REDRAW_XAXIS|wxPLOTCTRL_REDRAW_YAXIS,
+    wxPLOTCTRL_REDRAW_EVERYTHING = wxPLOTCTRL_REDRAW_WHOLEPLOT|wxPLOTCTRL_REDRAW_WINDOW,
+    wxPLOTCTRL_REDRAW_BLOCKER    = 0x010   // don't let OnPaint redraw, used internally
+};
 
 //-----------------------------------------------------------------------------
 // wxPlotCtrlEvent
@@ -1057,6 +1072,11 @@ void wxPlotCtrl::SetKeyColour(const wxColour & colour)
 {
     wxCHECK_RET(colour.Ok(), wxT("invalid colour"));
     m_keyDrawer->SetFontColour(colour);
+    Redraw(wxPLOTCTRL_REDRAW_PLOT);
+}
+void wxPlotCtrl::SetShowKey(bool show)
+{
+    m_show_key = show;
     Redraw(wxPLOTCTRL_REDRAW_PLOT);
 }
 
@@ -2157,6 +2177,32 @@ void wxPlotCtrl::SetAreaMouseCursor(int cursorid)
     else
         m_area->SetCursor(wxCursor(wxStockCursor(cursorid)));
 }
+void wxPlotCtrl::SetCrossHairCursor(bool useCrosshairCursor)
+{
+    m_crosshair_cursor = useCrosshairCursor;
+    m_area->m_mousePt = wxPoint(-1,-1);
+    Redraw(wxPLOTCTRL_REDRAW_PLOT);
+}
+void wxPlotCtrl::SetDrawSymbols(bool drawsymbols)
+{
+    m_draw_symbols = drawsymbols;
+    Redraw(wxPLOTCTRL_REDRAW_PLOT);
+}
+void wxPlotCtrl::SetDrawLines(bool drawlines)
+{
+    m_draw_lines = drawlines;
+    Redraw(wxPLOTCTRL_REDRAW_PLOT);
+}
+void wxPlotCtrl::SetDrawSpline(bool drawspline)
+{
+    m_draw_spline = drawspline;
+    Redraw(wxPLOTCTRL_REDRAW_PLOT);
+}
+void wxPlotCtrl::SetDrawGrid(bool drawgrid)
+{
+    m_draw_grid = drawgrid;
+    Redraw(wxPLOTCTRL_REDRAW_PLOT);
+}
 
 void wxPlotCtrl::OnSize(wxSizeEvent&)
 {
@@ -2876,7 +2922,7 @@ void wxPlotCtrl::CalcXAxisTickPositions()
     m_xAxisTicks.Clear();
     m_xAxisTickLabels.Clear();
     int i, x, windowWidth = GetPlotAreaRect().width;
-    for (i=0; i<m_xAxisTick_count; i++)
+    for (i = 0; i < m_xAxisTick_count; i++)
     {
         if (!IsFinite(current, wxT("axis label is not finite"))) return;
 
@@ -2897,7 +2943,7 @@ void wxPlotCtrl::CalcYAxisTickPositions()
     m_yAxisTicks.Clear();
     m_yAxisTickLabels.Clear();
     int i, y, windowWidth = GetPlotAreaRect().height;
-    for (i=0; i<m_yAxisTick_count; i++)
+    for (i = 0; i < m_yAxisTick_count; i++)
     {
         if (!IsFinite(current, wxT("axis label is not finite")))
             return;
