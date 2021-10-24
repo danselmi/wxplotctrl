@@ -53,17 +53,17 @@ enum wxPlotMarkerType
     wxPLOTMARKER_BITMAP     // the bitmap is drawn at the position
 };
 
-class wxPlotMarker : public wxObject
+class wxPlotMarker: public wxObject
 {
 public:
-    wxPlotMarker() : wxObject() {}
+    wxPlotMarker(): wxObject() {}
     // Create a full marker (see CreateXXX functions)
     wxPlotMarker(int marker_type,
                  const wxRect2DDouble& rect,
                  const wxSize& size,
                  const wxPen& pen,
                  const wxBrush& brush = wxNullBrush,
-                 const wxBitmap& bitmap = wxNullBitmap) : wxObject()
+                 const wxBitmap& bitmap = wxNullBitmap): wxObject()
         {Create(marker_type, rect, size, pen, brush, bitmap);}
     // Create a shape marker to be drawn at the point with the given size
     //   in pixels
@@ -71,11 +71,11 @@ public:
                  const wxPoint2DDouble& pt,
                  const wxSize& size,
                  const wxPen& pen,
-                 const wxBrush& brush = wxNullBrush) : wxObject()
+                 const wxBrush& brush = wxNullBrush): wxObject()
         {Create(marker_type, wxRect2DDouble(pt.m_x, pt.m_y, 0, 0), size, pen, brush);}
     // Create a bitmap marker
     wxPlotMarker(const wxPoint2DDouble& pt,
-                 const wxBitmap& bitmap) : wxObject()
+                 const wxBitmap& bitmap): wxObject()
         {CreateBitmapMarker(pt, bitmap);}
 
     virtual ~wxPlotMarker() {}

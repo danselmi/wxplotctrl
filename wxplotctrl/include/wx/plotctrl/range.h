@@ -26,7 +26,7 @@ WX_DECLARE_OBJARRAY_WITH_DECL(wxRangeIntSelection, wxArrayRangeIntSelection, cla
 class wxRangeInt
 {
 public:
-    inline wxRangeInt(int min_=0, int max_=0) : m_min(min_), m_max(max_) {}
+    inline wxRangeInt(int min_=0, int max_=0): m_min(min_), m_max(max_) {}
 
     // Get the width of the range
     inline int GetRange() const {return m_max - m_min + 1;}
@@ -114,7 +114,7 @@ public:
 
 class wxRangeIntSelection
 {
-public :
+public:
     wxRangeIntSelection() {}
     wxRangeIntSelection(const wxRangeInt& range) {if (!range.IsEmpty()) m_ranges.Add(range);}
     wxRangeIntSelection(const wxRangeIntSelection &ranges) {Copy(ranges);}
@@ -166,7 +166,7 @@ public :
 
     wxRangeIntSelection& operator = (const wxRangeIntSelection& other) {Copy(other); return *this;}
 
-protected :
+protected:
     wxArrayRangeInt m_ranges;
 };
 
