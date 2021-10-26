@@ -24,6 +24,8 @@
 #define RINT(x) (int((x) >= 0 ? ((x) + 0.5) : ((x) - 0.5)))
 
 class wxScrollBar;
+class wxTimer;
+class wxTimerEvent;
 
 class wxPlotCtrlEvent;
 
@@ -64,12 +66,21 @@ WX_DECLARE_OBJARRAY_WITH_DECL(wxPlotData,      wxArrayPlotData, class);
 class wxPlotCtrl: public wxWindow
 {
 public:
+    enum class GridType
+    {
+        Cartesian,
+        Polar,
+        SmithChart,
+    };
+
     wxPlotCtrl();
     wxPlotCtrl(wxWindow *parent, wxWindowID win_id = wxID_ANY,
+               GridType gridType = GridType::Cartesian,
                const wxPoint &pos = wxDefaultPosition,
                const wxSize &size = wxDefaultSize,
                const wxString &name = wxT("wxPlotCtrl"));
     bool Create(wxWindow *parent, wxWindowID id = wxID_ANY,
+                GridType gridType = GridType::Cartesian,
                 const wxPoint &pos = wxDefaultPosition,
                 const wxSize &size = wxDefaultSize,
                 const wxString &name = wxT("wxPlotCtrl"));
@@ -573,6 +584,7 @@ public:
     // Draw the tick marks or grid lines
     virtual void DrawGridLines(wxDC *dc, const wxRect &rect);
     void DrawTickMarksOrGridLines(wxDC *dc, const wxRect &rect, bool ticksOnly);
+    void DrawSmithChartGrid(wxDC *dc, const wxRect &rect);
     // Draw markers
     virtual void DrawMarkers(wxDC *dc, const wxRect &rect);
 
@@ -715,6 +727,7 @@ protected:
     wxColour titleColour_;
     wxColour borderColour_;
 
+    GridType gridType_;
     // option variables
     bool crosshairCursor_;
     bool drawSymbols_;
@@ -790,7 +803,7 @@ protected:
     MarkerType    areaMouseMarker_;
     int           areaMouseCursorid_;
 
-    void setPlotWinMouseCursor(wxStockCursor cursorid);
+    void SetPlotWinMouseCursor(wxStockCursor cursorid);
     int mouseCursorid_;
 
 private:
@@ -833,8 +846,8 @@ public:
 
     wxPlotCtrl *GetPlotCtrl() const {return wxDynamicCast(GetEventObject(), wxPlotCtrl);}
 
-    wxPlotCtrl::MouseFunction getMouseFunction() const {return mouseFunc_;}
-    void setMouseFunction(wxPlotCtrl::MouseFunction func) {mouseFunc_ = func;}
+    wxPlotCtrl::MouseFunction GetMouseFunction() const {return mouseFunc_;}
+    void SetMouseFunction(wxPlotCtrl::MouseFunction func) {mouseFunc_ = func;}
 
     static wxString GetEventName(wxEventType eventType);
 

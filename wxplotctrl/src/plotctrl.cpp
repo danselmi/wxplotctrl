@@ -473,6 +473,7 @@ wxPlotCtrl::wxPlotCtrl():
     titleColour_(*wxBLACK),
     borderColour_(*wxBLACK),
 
+    gridType_(GridType::Cartesian),
     crosshairCursor_(false),
     drawSymbols_(true),
     drawLines_(true),
@@ -549,19 +550,21 @@ wxPlotCtrl::wxPlotCtrl():
                                        wxPen(wxColour(0, 255, 0)));
 }
 
-wxPlotCtrl::wxPlotCtrl(wxWindow *parent, wxWindowID id, const wxPoint &pos,
+wxPlotCtrl::wxPlotCtrl(wxWindow *parent, wxWindowID id,
+                       GridType gridType, const wxPoint &pos,
                        const wxSize &size, const wxString &name)
 :
     wxPlotCtrl()
 {
-    Create(parent, id, pos, size, name);
+    Create(parent, id, gridType, pos, size, name);
 }
 
 bool wxPlotCtrl::Create(wxWindow *parent, wxWindowID win_id,
-                        const wxPoint &pos, const wxSize &size,
-                        const wxString &name)
+                        GridType gridType, const wxPoint &pos,
+                        const wxSize &size, const wxString &name)
 {
     redrawNeed_ = REDRAW_BLOCKER; // no paints until finished
+    gridType_ = gridType;
 
     if (!wxWindow::Create(parent, win_id, pos,
                           wxSize(size.x > 20 ? size.x : 20, size.y > 20 ? size.y : 20),
@@ -604,6 +607,8 @@ bool wxPlotCtrl::Create(wxWindow *parent, wxWindowID win_id,
 
     bottomAxisDrawer_->SetTickFont(axisFont);
     leftAxisDrawer_->SetTickFont(axisFont);
+//    bottomAxisDrawer_->SetLabelFont(*wxSWISS_FONT); // needs to be rotated
+//    leftAxisDrawer_->SetLabelFont(*wxSWISS_FONT); //   swiss works
 
     bottomAxis_ = new Axis(this, ID_BOTTOM_AXIS);
     leftAxis_ = new Axis(this, ID_LEFT_AXIS);
@@ -625,6 +630,14 @@ bool wxPlotCtrl::Create(wxWindow *parent, wxWindowID win_id,
     SetPlotTitle(GetPlotTitle());
     SetBottomAxisLabel(GetBottomAxisLabel());
     SetLeftAxisLabel(GetLeftAxisLabel());
+
+    if (gridType_ == GridType::SmithChart)
+    {
+        showBottomAxis_ = false;
+        showLeftAxis_ = false;
+        SetFixAspectRatio(true, 1.0);
+        drawTicks_ = true;
+    }
 
     Redraw(REDRAW_WHOLEPLOT); // redraw when all done
 
@@ -695,7 +708,7 @@ void wxPlotCtrl::DrawPlotCtrl(wxDC *dc)
             dc->DrawRotatedText(leftAxisLabel_, leftLabelRect_.x, leftLabelRect_.y + leftLabelRect_.height, 90);
     }
 
-#ifdef DRAW_BORDERS
+#ifndef NDEBUG
     // Test code for sizing to show the extent of the axes
     dc->SetBrush(*wxTRANSPARENT_BRUSH);
     dc->SetPen(wxPen(GetBorderColour(), 1, wxSOLID));
@@ -705,7 +718,7 @@ void wxPlotCtrl::DrawPlotCtrl(wxDC *dc)
 #endif
 }
 
-void wxPlotCtrl::setPlotWinMouseCursor(wxStockCursor cursorid)
+void wxPlotCtrl::SetPlotWinMouseCursor(wxStockCursor cursorid)
 {
     if (cursorid == mouseCursorid_)
         return;
@@ -728,10 +741,10 @@ void wxPlotCtrl::OnMouse(wxMouseEvent &event)
         (showBottomAxisLabel_ && bottomAxisLabelRect_.Contains(mousePt)) ||
         (showLeftAxisLabel_ && leftLabelRect_.Contains(mousePt)))
     {
-        setPlotWinMouseCursor(wxCURSOR_IBEAM);
+        SetPlotWinMouseCursor(wxCURSOR_IBEAM);
     }
     else
-        setPlotWinMouseCursor(wxCURSOR_ARROW);
+        SetPlotWinMouseCursor(wxCURSOR_ARROW);
 
     if (event.ButtonDClick(1) && !IsTextCtrlShown())
     {
@@ -2377,7 +2390,7 @@ void wxPlotCtrl::SetAreaMouseFunction(MouseFunction func, bool sendEvent)
     if (sendEvent)
     {
         wxPlotCtrlEvent event(wxEVT_PLOTCTRL_MOUSE_FUNC_CHANGING, GetId(), this);
-        event.setMouseFunction(func);
+        event.SetMouseFunction(func);
         if (!DoSendEvent(event))
             return;
     }
@@ -2415,7 +2428,7 @@ void wxPlotCtrl::SetAreaMouseFunction(MouseFunction func, bool sendEvent)
     if (sendEvent)
     {
         wxPlotCtrlEvent event(wxEVT_PLOTCTRL_MOUSE_FUNC_CHANGED, GetId(), this);
-        event.setMouseFunction(func);
+        event.SetMouseFunction(func);
         DoSendEvent(event);
     }
 }
@@ -2783,12 +2796,14 @@ void wxPlotCtrl::DrawAreaWindow(wxDC *dc, const wxRect &rect)
     dc->SetClippingRegion(refreshRect);
 
     dc->SetBrush(wxBrush(GetBackgroundColour(), wxBRUSHSTYLE_SOLID));
-    dc->SetPen(wxPen(GetBorderColour(), areaBorderWidth_, wxPENSTYLE_SOLID));
+    dc->SetPen(wxPen(gridType_ == GridType::SmithChart ? GetBackgroundColour() : GetBorderColour(), areaBorderWidth_, wxPENSTYLE_SOLID));
     dc->DrawRectangle(clientRect);
+    if (gridType_ == GridType::SmithChart)
+        dc->SetPen(wxPen(GetBorderColour(), areaBorderWidth_, wxPENSTYLE_SOLID));
 
     if (GetDrawGrid())
         DrawGridLines(dc, refreshRect);
-    if (GetDrawTicks())
+    if (GetDrawTicks() && !GetDrawGrid())
         DrawTickMarks(dc, refreshRect);
     DrawMarkers(dc, refreshRect);
 
@@ -2813,7 +2828,10 @@ void wxPlotCtrl::DrawAreaWindow(wxDC *dc, const wxRect &rect)
 
     // refresh border
     dc->SetBrush(*wxTRANSPARENT_BRUSH);
-    dc->SetPen(wxPen(GetBorderColour(), areaBorderWidth_, wxPENSTYLE_SOLID));
+    if (gridType_ != GridType::SmithChart)
+        dc->SetPen(wxPen(GetBorderColour(), areaBorderWidth_, wxPENSTYLE_SOLID));
+    else
+        dc->SetPen(wxPen(GetBackgroundColour(), areaBorderWidth_, wxPENSTYLE_SOLID));
     dc->DrawRectangle(clientRect);
 
     dc->SetPen(wxNullPen);
@@ -2943,7 +2961,203 @@ void wxPlotCtrl::DrawCurveCursor(wxDC *dc)
 
 void wxPlotCtrl::DrawGridLines(wxDC *dc, const wxRect &rect)
 {
-    DrawTickMarksOrGridLines(dc, rect, false);
+    if (gridType_ == GridType::Cartesian)
+        DrawTickMarksOrGridLines(dc, rect, false);
+    else if (gridType_ == GridType::SmithChart)
+        DrawSmithChartGrid(dc, rect);
+}
+
+void wxPlotCtrl::DrawSmithChartGrid(wxDC *dc, const wxRect &rect)
+{
+    wxPoint origin(GetClientCoordFromPlotX(0.0), GetClientCoordFromPlotY(0.0));
+    wxPoint gshort(GetClientCoordFromPlotX(-1.0), origin.y);
+    wxPoint gopen(GetClientCoordFromPlotX(1.0), origin.y);
+
+    auto drawConstRealCircles = [&](const double *Vals, size_t len)
+    {
+        for (size_t i = 0; i < len; ++i)
+        {
+            const double Gamma = (Vals[i] - 1.0) / (Vals[i] + 1.0);
+            const wxPoint p(GetClientCoordFromPlotX(Gamma), origin.y);
+            const wxPoint c((gopen.x + p.x)/2, origin.y);
+            dc->DrawArc(p, p, c);
+        }
+    };
+    auto drawConstRealAcrs = [&](const double *ReVals, const double *ImVals, size_t len)
+    {
+        for (size_t i = 0; i < len ; ++i)
+        {
+            const double r = ReVals[i];
+            const double x = ImVals[i];
+            const double ReGamma = ((r - 1.0) * (r + 1.0) + x * x) /
+                                   ((r + 1.0) * (r + 1.0) + x * x);
+            const double ImGamma = (x * (r + 1.0) - x * (r - 1.0)) /
+                                  ((r + 1.0) * (r + 1.0) + x * x);
+            const double GammaR = (r - 1.0) / (r + 1.0);
+
+            const wxPoint p1(GetClientCoordFromPlotX(ReGamma), GetClientCoordFromPlotY(ImGamma));
+            const wxPoint p2(GetClientCoordFromPlotX(ReGamma), GetClientCoordFromPlotY(-ImGamma));
+            const wxPoint c((gopen.x + GetClientCoordFromPlotX(GammaR))/2, origin.y);
+            dc->DrawArc(p1, p2, c);
+        }
+    };
+    auto drawConstRealAcrSections = [&](const double *ReVals, const double *ImVals_1, const double *ImVals_2, size_t len)
+    {
+        for (size_t i = 0; i < len ; ++i)
+        {
+            const double r = ReVals[i];
+            const double x1 = ImVals_1[i];
+            const double x2 = ImVals_2[i];
+            const double ReGamma1 = ((r - 1.0) * (r + 1.0) + x1 * x1) /
+                                    ((r + 1.0) * (r + 1.0) + x1 * x1);
+            const double ImGamma1 = (x1 * (r + 1.0) - x1 * (r - 1.0)) /
+                                    ((r + 1.0) * (r + 1.0) + x1 * x1);
+            const double ReGamma2 = ((r - 1.0) * (r + 1.0) + x2 * x2) /
+                                    ((r + 1.0) * (r + 1.0) + x2 * x2);
+            const double ImGamma2 = (x2 * (r + 1.0) - x2 * (r - 1.0)) /
+                                    ((r + 1.0) * (r + 1.0) + x2 * x2);
+            const double GammaR = (r - 1.0) / (r + 1.0);
+
+            wxPoint p1(GetClientCoordFromPlotX(ReGamma1), GetClientCoordFromPlotY(ImGamma1));
+            wxPoint p2(GetClientCoordFromPlotX(ReGamma2), GetClientCoordFromPlotY(ImGamma2));
+            const wxPoint c((gopen.x + GetClientCoordFromPlotX(GammaR))/2, origin.y);
+            dc->DrawArc(p1, p2, c);
+            p1.y = GetClientCoordFromPlotY(-ImGamma1);
+            p2.y = GetClientCoordFromPlotY(-ImGamma2);
+            dc->DrawArc(p2, p1, c);
+        }
+    };
+    auto drawConstImaginaryAcrs = [&](const double *ReVals, size_t len)
+    {
+        for (size_t i = 0; i < len; ++i)
+        {
+            double x = ReVals[i];
+            double ReGamma = x * x / (x * x + 1) - 1.0 / (x * x + 1);
+            double ImGamma = (2 * x) / (x * x + 1);
+            double yc = 1.0/x;
+
+            wxPoint p(GetClientCoordFromPlotX(ReGamma), GetClientCoordFromPlotY(ImGamma));
+            wxPoint c(GetClientCoordFromPlotX(1.0), GetClientCoordFromPlotY(yc));
+            dc->DrawArc(p, gopen, c);
+            p.y = GetClientCoordFromPlotY(-ImGamma);
+            c.y = GetClientCoordFromPlotY(-yc);
+            dc->DrawArc(gopen, p, c);
+        }
+    };
+    auto drawConstImaginaryAcrSections = [&](const double *ImVals, const double *ReVals_1, const double *ReVals_2, size_t len)
+    {
+        for (size_t i = 0; i < len; ++i)
+        {
+            double x = ImVals[i];
+            double r1 = ReVals_1 ? ReVals_1[i] : 0.0;
+            double r2 = ReVals_2[i];
+            double ReGamma1 = (x * x + (r1 - 1.0)*(r1 + 1.0)) / (x * x + (r1 + 1.0) * (r1 + 1.0));
+            double ImGamma1 = ((r1 + 1.0) * x - (r1 - 1.0) * x) / (x * x + (r1 + 1.0) * (r1 + 1.0));
+            double ReGamma2 = (x * x + (r2 - 1.0)*(r2 + 1.0)) / (x * x + (r2 + 1.0) * (r2 + 1.0));
+            double ImGamma2 = ((r2 + 1.0) * x - (r2 - 1.0) * x) / (x * x + (r2 + 1.0) * (r2 + 1.0));
+            double yc = 1.0/x;
+
+            wxPoint p1(GetClientCoordFromPlotX(ReGamma1), GetClientCoordFromPlotY(ImGamma1));
+            wxPoint p2(GetClientCoordFromPlotX(ReGamma2), GetClientCoordFromPlotY(ImGamma2));
+            wxPoint c(GetClientCoordFromPlotX(1.0), GetClientCoordFromPlotY(yc));
+            dc->DrawArc(p1, p2, c);
+            p1.y = GetClientCoordFromPlotY(-ImGamma1);
+            p2.y = GetClientCoordFromPlotY(-ImGamma2);
+            c.y = GetClientCoordFromPlotY(-yc);
+            dc->DrawArc(p2, p1, c);
+        }
+    };
+    auto drawRealTickMarkValue = [&](const double *ReVals, size_t len)
+    {
+        for (size_t i = 0; i < len; ++i)
+        {
+            const double r = ReVals[i];
+            const double Gamma = (r - 1.0) / (r + 1.0);
+            const wxPoint p(GetClientCoordFromPlotX(Gamma), origin.y);
+            dc->DrawText(wxString::Format("%.1f", r), p);
+        }
+    };
+    auto drawImaginaryTickMarkValue = [&](const double *ImVals, size_t len)
+    {
+        for (size_t i = 0; i < len; ++i)
+        {
+            const double x = ImVals[i];
+            const double ReGamma = x * x / (x * x + 1) - 1.0 / (x * x + 1);
+            const double ImGamma = (2 * x) / (x * x + 1);
+            wxPoint p(GetClientCoordFromPlotX(ReGamma), GetClientCoordFromPlotY(ImGamma));
+            dc->DrawText(wxString::Format("%.1f", x), p);
+            p.y = GetClientCoordFromPlotY(-ImGamma);
+            dc->DrawText(wxString::Format("%.1f", x), p);
+        }
+    };
+    auto drawTickMarkValue = [&](const double *ReVals, const double *ImVals, size_t len, bool showReVal)
+    {
+        for (size_t i = 0; i < len; ++i)
+        {
+            const double r = ReVals[i];
+            const double x = ImVals[i];
+            const double ReGamma = ((r - 1.0) * (r + 1.0) + x * x) /
+                                   ((r + 1.0) * (r + 1.0) + x * x);
+            const double ImGamma = (x * (r + 1.0) - x * (r - 1.0)) /
+                                  ((r + 1.0) * (r + 1.0) + x * x);
+            wxPoint p(GetClientCoordFromPlotX(ReGamma), GetClientCoordFromPlotY(ImGamma));
+
+            const double v = showReVal ? r : x;
+            dc->DrawText(wxString::Format("%.1f", v), p);
+            p.y = GetClientCoordFromPlotY(-ImGamma);
+            dc->DrawText(wxString::Format("%.1f", v), p);
+        }
+    };
+
+    double Vals1[] = {50.0};
+    size_t len1 = sizeof(Vals1)/sizeof(Vals1[0]);
+
+    const double Vals2[] =                         {0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0,  5.0, 10.0, 20.0};
+    size_t len2 = sizeof(Vals2) / sizeof(Vals2[0]);
+    const double OrtVals2[len2] =                  { 0.2, 1.0, 0.20, 2.0, 1.0, 5.0, 1.0, 2.0, 1.0, 2.0, 1.0, 5.0, 2.0, 2.0, 2.0, 2.0, 5.0, 5.0, 5.0, 10.0, 20.0, 20.0};
+
+    const double Vals3[] =                         {.01, .02, .03, .04, .06, .07, .08, .09, .10, .11, .12, .13, .14, .16, .17, .18, .19, 0.2, .22, .24, .26, .28, 0.3, .32, .34, .36, .38, .42, .44, .46, .48, 0.5, .55, 0.6, .65, 0.7, .75, 0.8, .85, 0.9, .95,  1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9,  2.0, 2.2, 2.4, 2.6, 2.8,  3.0, 3.2, 3.4, 3.6, 3.8,  4.0, 4.2, 4.4, 4.6, 4.8,  6.0,  7.0,  8.0,  9.0, 12.0, 14.0, 16.0, 18.0, 20.0, 30.0, 40.0};
+    size_t len3 = sizeof(Vals3) / sizeof(Vals3[0]);
+    const double OrtVals3[len3] =                  {0.2, 0.5, 0.2, 0.5, 0.5, 0.2, 0.5, 0.2, 2.0, 0.2, 0.5, 0.2, 0.5, 0.5, 0.2, 0.5, 0.2, 5.0, 0.5, 0.5, 0.5, 0.5, 2.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 2.0, 1.0, 5.0, 1.0, 2.0, 1.0, 5.0, 1.0, 2.0, 1.0, 10.0, 2.0, 5.0, 2.0, 5.0, 2.0, 5.0, 2.0, 5.0, 2.0, 20.0, 5.0, 5.0, 5.0, 5.0, 10.0, 5.0, 5.0, 5.0, 5.0, 20.0, 5.0, 5.0, 5.0, 5.0, 20.0, 10.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 50.0, 50.0, 50.0};
+
+    const double Vals4[] =                         {0.05, 0.15, 0.25, 0.35, 0.45};
+    size_t len4 = sizeof(Vals4) / sizeof(Vals4[0]);
+    const double OrtVals4_1[len4] =                { 1.0,  1.0,  1.0,  1.0,  1.0};
+    const double OrtVals4_2[len4] =                { 0.5,  0.5,  0.5,  0.5,  0.5};
+
+    const double Vals5[] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 10.0, 20.0, 50.0};
+    size_t len5 = sizeof(Vals5) / sizeof(Vals5[0]);
+
+    const double Vals6[] =        {0.2, 0.4, 0.5, 0.6, 0.8, 1.0};
+    size_t len6 = sizeof(Vals6) / sizeof(Vals6[0]);
+    const double OrtVals6[len6] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+
+    // box
+    dc->SetPen(wxPen(*wxBLACK, 1, wxPENSTYLE_SOLID));
+    dc->SetBrush(wxBrush(GetBackgroundColour(), wxBRUSHSTYLE_TRANSPARENT));
+    dc->DrawArc(gopen, gopen, origin);
+
+    dc->SetPen(wxPen(GetGridColour(), 2, wxPENSTYLE_SOLID));
+
+    dc->DrawLine(gshort, gopen);//RealNumberLine
+    drawConstRealCircles(Vals1, len1);
+    drawConstRealAcrs(Vals2, OrtVals2, len2);
+    drawConstImaginaryAcrs(Vals1, len1);
+    drawConstImaginaryAcrSections(Vals2, nullptr, OrtVals2, len2);
+
+    dc->SetPen(wxPen(GetGridColour(), 1, wxPENSTYLE_SOLID));
+
+    drawConstRealAcrs(Vals3, OrtVals3, len3);
+    drawConstRealAcrSections(Vals4, OrtVals4_1, OrtVals4_2, len4);
+    drawConstImaginaryAcrSections(Vals3, nullptr, OrtVals3, len3);
+    drawConstImaginaryAcrSections(Vals4, OrtVals4_2, OrtVals4_1, len4);
+
+    dc->SetTextForeground(wxColor(196,196,196));
+
+    drawRealTickMarkValue(Vals5, len5);
+    drawImaginaryTickMarkValue(Vals5, len5);
+    drawTickMarkValue(Vals6, OrtVals6, len6, true);
+    drawTickMarkValue(OrtVals6, Vals6, len6, false);
 }
 
 void wxPlotCtrl::DrawTickMarks(wxDC *dc, const wxRect &rect)
@@ -3084,8 +3298,8 @@ void wxPlotCtrl::DrawWholePlot(wxDC *dc, const wxRect &boundingRect, double dpi)
     wxPrintf(wxT("DPI %g, font %g pen%g\n"), dpi, fontScale, penScale);
 
     //draw all components to the provided dc
-    dc->SetDeviceOrigin(long(boundingRect.x + bottomAxisRect_.GetLeft()),
-                        long(boundingRect.y + bottomAxisRect_.GetTop()));
+    dc->SetDeviceOrigin(long(boundingRect.x+bottomAxisRect_.GetLeft()),
+                        long(boundingRect.y+bottomAxisRect_.GetTop()));
     CalcXAxisTickPositions();
     DrawXAxis(dc, false);
 
